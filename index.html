@@ -1,0 +1,2002 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zeitwächter">
+<meta name="theme-color" content="#15102b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0;overscroll-behavior:none}
+body{font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+*{touch-action:manipulation}
+</style>
+<title>Zeitwächter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap">
+<style>
+textarea{-webkit-user-select:text;user-select:text}
+
+:root{
+  /* Layout: Hochformat-Kampfbildschirm – Gegner-Bühne oben, Team-Leiste in der Mitte, Kugelfeld unten. Bewusst nur ein dunkles Comic-Weltraum-Thema. */
+  color-scheme:dark;
+  --bg:#15102b;
+  --panel:#231a48;
+  --panel-2:#2f2462;
+  --ink:#120c22;
+  --paper:#fff4d6;
+  --text:#f5efe0;
+  --muted:#aaa0cf;
+  --accent:#ffcf3a;
+  --hot:#ff5a4e;
+  --good:#5be37d;
+  --display:'Bangers','Impact','Arial Black',sans-serif;
+  --body:'Comic Neue','Trebuchet MS','Segoe UI',sans-serif;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.5px),radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.5px);
+  background-size:37px 37px,23px 23px;background-position:0 0,11px 17px;
+  color:var(--text);font-family:var(--body);font-weight:700;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+}
+#app{height:100%;max-width:520px;margin:0 auto;box-sizing:border-box;position:relative;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section{height:100%;display:flex;flex-direction:column;box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+svg{display:block}
+
+/* Buttons */
+.btn{font-family:var(--display);font-size:22px;letter-spacing:.05em;line-height:1;background:var(--accent);color:var(--ink);
+  border:3px solid var(--ink);border-radius:12px;padding:10px 18px 8px;box-shadow:0 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.sm{font-size:18px;padding:7px 12px 5px}
+.btn.ghost{background:var(--panel-2);color:var(--text)}
+.btn.red{background:var(--hot);color:#fff}
+.btn:disabled{filter:grayscale(1) brightness(.7);cursor:default}
+
+/* Karte */
+#scrMap{overflow-y:auto;padding-block:14px 24px;gap:14px}
+.hero{position:relative;text-align:center;padding:22px 8px 14px;border:3px solid var(--ink);border-radius:18px;
+  background:
+   repeating-conic-gradient(from 0deg at 50% 60%,rgba(255,255,255,.10) 0 7deg,transparent 7deg 14deg),
+   radial-gradient(circle at 50% 60%,#ff7a3d,#c73a5c 45%,#3b1f73 80%);
+  box-shadow:5px 5px 0 var(--ink);overflow:hidden;flex:none}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(rgba(0,0,0,.25) 1.2px,transparent 1.8px) 0 0/7px 7px;pointer-events:none}
+.logo{position:relative;z-index:1;font-family:var(--display);font-size:clamp(38px,11.5vw,62px);line-height:.9;letter-spacing:.03em;color:var(--accent);
+  -webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--ink);transform:rotate(-3deg);margin:0;text-wrap:balance}
+.tag{position:relative;z-index:1;display:inline-block;margin-top:10px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);
+  border-radius:10px;padding:4px 10px;font-size:15px;transform:rotate(1.5deg)}
+.teamPeek{display:flex;align-items:center;gap:10px;background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:10px;box-shadow:4px 4px 0 var(--ink);flex:none}
+.teamPeek .faces{display:flex;flex:1;min-width:0}
+.teamPeek .faces div{width:40px;height:40px;border:2.5px solid var(--ink);border-radius:10px;overflow:hidden;margin-right:-6px;flex:none}
+.secTitle{font-family:var(--display);font-size:24px;letter-spacing:.05em;margin:6px 2px 0;color:var(--accent);flex:none}
+#levels{display:flex;flex-direction:column;gap:12px;flex:none}
+.lvl{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--panel);border:3px solid var(--ink);
+  border-radius:14px;padding:10px 12px;box-shadow:4px 4px 0 var(--ink)}
+.lvl:nth-child(odd){transform:rotate(-.5deg)}
+.lvl:nth-child(even){transform:rotate(.5deg)}
+.lvl .num{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--ink);border:3px solid var(--ink);
+  display:grid;place-items:center;font-family:var(--display);font-size:24px}
+.lvl.done .num{background:var(--good)}
+.lvl.locked{opacity:.5}
+.lvl.locked .num{background:var(--panel-2);color:var(--muted)}
+.lvl h3{margin:0;font-family:var(--display);font-size:22px;letter-spacing:.04em;font-weight:400}
+.lvl p{margin:2px 0 4px;color:var(--muted);font-size:14px}
+.lvl .info{min-width:0}
+.foes{display:flex;gap:3px;align-items:center;font-size:12px;color:var(--muted)}
+.foes img{width:18px;height:18px}
+.foot{display:flex;justify-content:center;flex:none;margin-top:4px}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:13px}
+
+/* Team-Bildschirm */
+#scrTeam{overflow-y:auto;padding-block:14px 24px;gap:12px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none}
+.topbar h2{margin:0;font-family:var(--display);font-size:30px;letter-spacing:.05em;font-weight:400;color:var(--accent);-webkit-text-stroke:1px var(--ink);text-shadow:2px 2px 0 var(--ink)}
+.slots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;flex:none}
+.slot{aspect-ratio:1;border:3px solid var(--ink);border-radius:12px;overflow:hidden;padding:0;background:var(--panel-2);position:relative}
+.slot.empty{display:grid;place-items:center;color:var(--muted);font-size:12px;border-style:dashed;border-color:var(--muted)}
+.slot.lead{box-shadow:0 0 0 3px var(--accent)}
+.sum{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--muted);flex:none}
+.sum b{color:var(--text);font-variant-numeric:tabular-nums}
+#roster{display:flex;flex-direction:column;gap:10px;flex:none}
+.rrow{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:start;background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:9px;box-shadow:3px 3px 0 var(--ink)}
+.rrow.in{background:var(--panel-2);box-shadow:3px 3px 0 var(--ink),inset 0 0 0 2px var(--accent)}
+.rrow .pic{width:62px;height:62px;border:3px solid var(--ink);border-radius:12px;overflow:hidden}
+.rrow .meta{min-width:0;display:flex;flex-direction:column;gap:3px}
+.rrow .nm{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rrow .nm b{font-family:var(--display);font-size:20px;letter-spacing:.04em;font-weight:400}
+.rrow .nm img{width:18px;height:18px}
+.chip{font-size:11px;background:var(--ink);color:var(--accent);border-radius:6px;padding:1px 6px}
+.stats{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pw{font-size:13px;line-height:1.3}
+.pw em{font-style:normal;color:var(--accent)}
+.rrow .act{margin-top:4px;align-self:flex-start}
+
+/* Kampf */
+#scrBattle{position:relative;padding-block:6px 8px}
+#bHead{display:flex;align-items:center;justify-content:space-between;gap:6px;flex:none;padding-bottom:4px}
+#bHead .btn.sm{font-size:15px;padding:5px 8px 3px;white-space:nowrap}
+#bTitle{font-family:var(--display);font-size:20px;letter-spacing:.05em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bWave{font-size:13px;color:var(--muted);white-space:nowrap}
+#stage{flex:1 1 auto;min-height:90px;align-items:stretch!important;position:relative;border:3px solid var(--ink);border-radius:16px;overflow:hidden;
+  display:flex;align-items:flex-end;justify-content:center;gap:2px;padding:8px 4px 6px;box-shadow:inset 0 -30px 40px rgba(0,0,0,.35)}
+#stage::before{content:"";position:absolute;inset:0;background:radial-gradient(rgba(0,0,0,.22) 1.1px,transparent 1.7px) 0 0/8px 8px;pointer-events:none}
+.enemy{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;width:min(31%,128px,var(--eh,128px));cursor:pointer;transition:opacity .5s,transform .5s;min-height:0}
+.enemy.boss{width:min(58%,230px,calc(var(--eh,230px) * 1.05))}
+.efig{position:relative;width:100%;min-height:0;flex:0 1 auto;display:flex;justify-content:center;align-items:flex-end;overflow:visible}
+.efig svg{width:100%;height:auto;max-height:100%;max-width:100%;filter:drop-shadow(0 5px 0 rgba(0,0,0,.35))}
+.enemy.hit .efig{animation:hit .32s}
+.enemy.act .efig{animation:lunge .45s}
+.enemy.dead{opacity:0;transform:scale(.5) rotate(-12deg);pointer-events:none}
+.enemy.tgt .efig::after{content:"";position:absolute;left:50%;top:50%;width:70%;aspect-ratio:1;transform:translate(-50%,-50%);
+  border:3px dashed var(--accent);border-radius:50%;animation:spin 6s linear infinite;pointer-events:none}
+.ename{display:flex;align-items:center;gap:3px;font-size:11px;background:rgba(18,12,34,.75);border-radius:6px;padding:1px 5px;white-space:nowrap;max-width:100%;overflow:hidden}
+.ename img{width:13px;height:13px;flex:none}
+.ehp{width:92%;height:9px;border:2px solid var(--ink);border-radius:6px;background:#3a1f2a;overflow:hidden}
+.ehp i{display:block;height:100%;background:linear-gradient(#ff8a6b,#e8432e);transition:width .25s}
+.ecd{position:absolute;left:0;top:0;z-index:2;min-width:26px;height:26px;border-radius:50%;background:var(--paper);color:var(--ink);border:3px solid var(--ink);
+  display:grid;place-items:center;font-family:var(--display);font-size:17px;line-height:1}
+.ecd.soon{background:var(--hot);color:#fff;animation:pulse .8s infinite}
+.estat{position:absolute;right:0;top:0;z-index:2;display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+.estat span{font-size:10px;line-height:1;background:var(--ink);border:2px solid var(--paper);border-radius:6px;padding:2px 4px;white-space:nowrap}
+.estat .sh{color:#9fd2ff}.estat .ps{color:#a8f0a0}.estat .st{color:var(--accent)}
+
+#team{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:5px;flex:none;max-width:400px;width:100%;margin-inline:auto}
+.ally{position:relative;aspect-ratio:1;border:3px solid var(--ink);border-radius:11px;overflow:hidden;padding:0;background:var(--panel-2)}
+.ally svg{width:100%;height:100%}
+.ally .bar{position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(18,12,34,.75)}
+.ally .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.ally .bar b{position:absolute;top:0;bottom:0;width:2px;background:#fff}
+.ally.lead{border-color:var(--accent)}
+.ally.ready{animation:glow 1s infinite}
+.ally.ready .bar i{background:#fff}
+.ally .aff{position:absolute;top:1px;right:2px;font-size:13px;line-height:1;-webkit-text-stroke:1px var(--ink);font-family:var(--display)}
+.ally .aff.up{color:var(--good)}.ally .aff.down{color:var(--hot)}
+.ally.bounce{animation:bounce .3s}
+.ally .gemtag{position:absolute;left:2px;top:2px;width:15px;height:15px}
+#hpWrap{position:relative;margin-top:6px;flex:none}
+#hp{height:16px;border:3px solid var(--ink);border-radius:10px;background:#3a1f2a;overflow:hidden}
+#hp i{display:block;height:100%;background:linear-gradient(#ff9cc8,#f2559f);transition:width .3s}
+#hp.poison i{background:linear-gradient(#b8f07a,#4aa83a)}
+#hpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-variant-numeric:tabular-nums;
+  text-shadow:1px 1px 0 var(--ink),-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink)}
+#timer{height:6px;margin-top:5px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;flex:none}
+#timer i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left;transform:scaleX(0)}
+#timer.low i{background:var(--hot)}
+#boardWrap{position:relative;margin-top:4px;flex:none;display:flex;justify-content:center;
+  margin-left:calc(4px - max(16px,env(safe-area-inset-left,0px)));margin-right:calc(4px - max(16px,env(safe-area-inset-right,0px)))}
+#board{display:block;border:3px solid var(--ink);border-radius:14px;touch-action:none;background:#1b1438;box-shadow:0 5px 0 var(--ink)}
+#combo{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-family:var(--display);font-size:46px;color:var(--accent);
+  -webkit-text-stroke:2px var(--ink);text-shadow:3px 3px 0 var(--ink);pointer-events:none;opacity:0;white-space:nowrap}
+#combo.show{animation:combo .7s forwards}
+#chip{position:absolute;right:6px;top:-30px;font-size:12px;background:var(--accent);color:var(--ink);border:2px solid var(--ink);border-radius:8px;padding:2px 6px}
+
+.float{position:absolute;z-index:30;font-family:var(--display);font-size:28px;letter-spacing:.03em;color:#fff;-webkit-text-stroke:1.5px var(--ink);
+  text-shadow:2px 2px 0 var(--ink);pointer-events:none;transform:translate(-50%,-50%);animation:floatUp 1s ease-out forwards;white-space:nowrap}
+.float.strong{font-size:36px;color:var(--accent)}
+.float.weak{font-size:22px;color:#c9c2d8}
+.float.c-r{color:#ff8a6b}.float.c-b{color:#8fc8ff}.float.c-g{color:#8ff08a}.float.c-y{color:#ffe066}.float.c-k{color:#c4a8ff}
+.float.strong.c-r,.float.strong.c-b,.float.strong.c-g,.float.strong.c-y,.float.strong.c-k{font-size:36px}
+.float.heal{color:var(--good)}
+.float.hurt{color:var(--hot);font-size:32px}
+.float.poison{color:#b8f07a;font-size:22px}
+.float.burst{font-size:18px;color:var(--ink);-webkit-text-stroke:0;text-shadow:none;background:var(--paper);border:3px solid var(--ink);border-radius:12px;padding:3px 9px 1px;animation:burst 1.3s ease-out forwards}
+.banner{position:absolute;left:50%;top:30%;z-index:35;transform:translate(-50%,-50%) rotate(-4deg);font-family:var(--display);font-size:44px;
+  color:var(--accent);-webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--ink);pointer-events:none;animation:banner 1.3s forwards;white-space:nowrap}
+.banner.power{font-size:30px;color:#fff;background:var(--hot);-webkit-text-stroke:1px var(--ink);border:3px solid var(--ink);border-radius:14px;padding:6px 14px 2px;text-shadow:2px 2px 0 var(--ink)}
+.shake{animation:shake .35s}
+
+/* Overlay */
+#overlay{position:fixed;inset:0;z-index:50;background:rgba(10,6,22,.74);display:flex;align-items:flex-end;justify-content:center;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#overlay.center{align-items:center}
+.sheet{width:100%;max-width:480px;background:var(--panel);border:3px solid var(--ink);border-radius:18px;box-shadow:5px 5px 0 var(--ink);padding:16px;
+  display:flex;flex-direction:column;gap:10px;animation:pop .25s;max-height:85vh;overflow-y:auto;box-sizing:border-box}
+.sheet h2{margin:0;font-family:var(--display);font-weight:400;font-size:30px;letter-spacing:.05em;color:var(--accent);-webkit-text-stroke:1px var(--ink);text-shadow:2px 2px 0 var(--ink)}
+.sheet .row{display:flex;gap:10px;align-items:center}
+.sheet .row .pic{width:72px;height:72px;border:3px solid var(--ink);border-radius:14px;overflow:hidden;flex:none}
+.sheet p{margin:0;line-height:1.4}
+.sheet .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:4px}
+.big{font-family:var(--display);font-size:56px;text-align:center;color:var(--accent);-webkit-text-stroke:2px var(--ink);text-shadow:4px 4px 0 var(--ink);margin:0;transform:rotate(-3deg)}
+.big.lose{color:var(--hot)}
+.lvlups{display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+.lvlups span{background:var(--ink);border-radius:8px;padding:3px 7px}
+.lvlups span b{color:var(--good)}
+.recruit{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:14px;padding:10px;display:flex;gap:10px;align-items:center}
+.recruit .pic{width:64px;height:64px;border:3px solid var(--ink);border-radius:12px;overflow:hidden;flex:none}
+.recruit b{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:.04em}
+
+.dlg{width:100%;max-width:480px;display:flex;align-items:flex-end;gap:8px;animation:pop .2s}
+.dpic{width:92px;height:92px;flex:none;border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:4px 4px 0 var(--ink);background:var(--panel-2)}
+.bubble{position:relative;flex:1;min-width:0;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:20px;padding:10px 14px 8px;box-shadow:4px 4px 0 var(--ink)}
+.bubble::before{content:"";position:absolute;left:-14px;bottom:18px;border:10px solid transparent;border-right:14px solid var(--ink)}
+.bubble::after{content:"";position:absolute;left:-8px;bottom:20px;border:8px solid transparent;border-right:11px solid var(--paper)}
+.bubble b{font-family:var(--display);font-size:20px;font-weight:400;letter-spacing:.05em;display:block}
+.bubble p{margin:2px 0 4px;font-size:16px;line-height:1.35}
+.bubble .next{display:block;text-align:right;font-size:13px;opacity:.6}
+.skip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));background:var(--panel-2);border:2px solid var(--ink);border-radius:10px;padding:5px 10px;font-size:13px;color:var(--text)}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--paper);color:var(--ink);
+  border:3px solid var(--ink);border-radius:12px;padding:8px 14px;font-size:14px;box-shadow:3px 3px 0 var(--ink);max-width:calc(100% - 40px);text-align:center}
+
+@keyframes hit{0%{transform:translateX(0)}25%{transform:translateX(-7px) rotate(-4deg);filter:brightness(2)}60%{transform:translateX(5px)}100%{transform:none}}
+@keyframes lunge{0%{transform:none}40%{transform:translateY(14px) scale(1.12)}100%{transform:none}}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes pulse{50%{transform:scale(1.15)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 2px var(--accent),0 0 6px var(--accent)}50%{box-shadow:0 0 0 3px #fff,0 0 16px var(--accent)}}
+@keyframes bounce{40%{transform:translateY(-9px)}}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(1)}}
+@keyframes burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-8deg)}15%{opacity:1;transform:translate(-50%,-90%) scale(1.1) rotate(-4deg)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-110%) rotate(-4deg)}}
+@keyframes combo{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.2) rotate(-4deg)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(1) rotate(-4deg)}}
+@keyframes banner{0%{opacity:0;transform:translate(-50%,-50%) rotate(-4deg) scale(.4)}15%{opacity:1;transform:translate(-50%,-50%) rotate(-4deg) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) rotate(-4deg)}}
+@keyframes shake{20%{transform:translate(-6px,3px)}40%{transform:translate(6px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+
+/* V2: Szene, Effekte, Route */
+#fx{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:25}
+#flash{position:absolute;inset:0;z-index:24;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 60%,transparent 35%,rgba(255,40,60,.55))}
+#flash.on{animation:flash .45s}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.scene{position:absolute;inset:0;z-index:0;pointer-events:none}
+.scene svg{width:100%;height:100%}
+.motes{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.motes i{position:absolute;bottom:-10px;width:5px;height:5px;border-radius:50%;background:rgba(255,240,200,.7);box-shadow:0 0 8px rgba(255,220,140,.9);animation:mote linear infinite}
+@keyframes mote{from{transform:translateY(0)}to{transform:translateY(-320px) translateX(30px);opacity:0}}
+.efig::before{content:"";position:absolute;left:18%;right:18%;bottom:-2px;height:10%;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(2px)}
+.efig svg{animation:bob 2.6s ease-in-out infinite}
+.enemy:nth-child(2) .efig svg{animation-delay:-.9s}
+.enemy:nth-child(3) .efig svg{animation-delay:-1.7s}
+@keyframes bob{50%{transform:translateY(-5px)}}
+.spin-slow{transform-box:fill-box;transform-origin:center;animation:gear 14s linear infinite}
+.spin-rev{transform-box:fill-box;transform-origin:center;animation:gear 10s linear infinite reverse}
+@keyframes gear{to{transform:rotate(360deg)}}
+#mute{min-width:44px}
+.btn{background-image:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,0) 55%)}
+#route{position:relative;flex:none}
+#route svg.path{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:0;width:150px}
+.node .orb{width:66px;height:66px;border-radius:50%;border:4px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:30px;color:var(--ink);
+  background:radial-gradient(circle at 35% 30%,#fff6b0,var(--accent) 45%,#c48a00);box-shadow:0 5px 0 var(--ink),0 0 0 4px rgba(255,207,58,.25)}
+.node.done .orb{background:radial-gradient(circle at 35% 30%,#d6ffe0,var(--good) 45%,#1f8a3c)}
+.node.locked .orb{background:radial-gradient(circle at 35% 30%,#6c6390,#3a3160 60%,#241c45);color:#8d84b5}
+.node.cur .orb{animation:nodePulse 1.4s infinite}
+@keyframes nodePulse{50%{box-shadow:0 5px 0 var(--ink),0 0 0 12px rgba(255,207,58,.0),0 0 26px rgba(255,207,58,.9)}}
+.node .lbl{font-family:var(--display);font-size:19px;letter-spacing:.04em;background:rgba(18,12,34,.8);border:2px solid var(--ink);border-radius:9px;padding:2px 8px 0;white-space:nowrap}
+.node.locked .lbl{color:var(--muted)}
+.scene-card{border:3px solid var(--ink);border-radius:14px;overflow:hidden;height:120px;position:relative}
+.scene-card .foesRow{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:4px}
+.scene-card .foesRow div{width:54px}
+
+/* V4: Tutorial */
+#coach{position:absolute;left:0;right:0;z-index:40;display:flex;align-items:flex-end;gap:8px;pointer-events:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));animation:pop .25s}
+#coach.top{top:44px}
+#coach.bottom{bottom:12px}
+#coach .cpic{width:64px;height:64px;flex:none;border:3px solid var(--ink);border-radius:14px;overflow:hidden;box-shadow:3px 3px 0 var(--ink)}
+#coach .cb{position:relative;flex:1;min-width:0;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:8px 12px;box-shadow:3px 3px 0 var(--ink);pointer-events:auto}
+#coach .cb b{font-family:var(--display);font-size:17px;font-weight:400;letter-spacing:.05em;display:flex;justify-content:space-between;gap:8px}
+#coach .cb b small{font-family:var(--body);font-size:11px;opacity:.6;letter-spacing:0}
+#coach .cb p{margin:2px 0 4px;font-size:15px;line-height:1.35}
+#coach .row2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#coach .skipT{background:none;border:0;padding:0;font-size:12px;color:var(--ink);opacity:.6;text-decoration:underline}
+#coach .btn{font-size:17px;padding:6px 12px 4px}
+.hl{animation:hl 1s infinite!important;position:relative;z-index:39}
+@keyframes hl{0%,100%{box-shadow:0 0 0 3px #fff,0 0 14px 4px var(--accent)}50%{box-shadow:0 0 0 5px var(--accent),0 0 24px 8px var(--accent)}}
+.tutCard{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,var(--panel-2),var(--panel));border:3px solid var(--ink);border-radius:16px;padding:12px;box-shadow:4px 4px 0 var(--ink);flex:none}
+.tutCard .pic{width:60px;height:60px;border:3px solid var(--ink);border-radius:12px;overflow:hidden;flex:none}
+.tutCard p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.tutCard b{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:.04em}
+.tutCard > div{flex:1;min-width:0}
+/* V3: Zweifarbige Rahmen, Kapitel, Crew-Raster */
+.duo{background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%);padding:3px;border:2.5px solid var(--ink);border-radius:13px;box-sizing:border-box;position:relative}
+.duo > .in{width:100%;height:100%;border-radius:9px;overflow:hidden;border:2px solid var(--ink);box-sizing:border-box}
+.ally.duo{padding:3px}
+.ally .gemtag.sec{left:auto;right:3px;top:auto;bottom:9px}
+.ally .aff{right:auto;left:18px;top:3px}
+.chaps{display:flex;gap:8px;align-items:center;padding:2px 0 6px;flex:none}
+.chapMid{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column}
+.chapMid b{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:.05em}
+.chapMid small{color:var(--muted);font-size:12px;min-height:14px}
+.chaps::-webkit-scrollbar{display:none}
+.chapc{flex:none;font-family:var(--display);font-size:16px;letter-spacing:.04em;background:var(--panel);border:2.5px solid var(--ink);border-radius:10px;padding:6px 10px 4px;color:var(--text);box-shadow:0 3px 0 var(--ink)}
+.chapc.on{background:var(--accent);color:var(--ink)}
+.chapc.done{box-shadow:0 3px 0 var(--ink),inset 0 -4px 0 var(--good)}
+.chapc:disabled{opacity:.45}
+.chapHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex:none}
+.chapHead .secTitle{margin:0}
+.chapHead span{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.node .orb{width:56px;height:56px;font-size:24px}
+.node.boss .orb{width:72px;height:72px;font-size:20px;background:radial-gradient(circle at 35% 30%,#ffb0a0,var(--hot) 45%,#8a1a12);color:#fff;-webkit-text-stroke:1px var(--ink)}
+.node.boss.locked .orb{background:radial-gradient(circle at 35% 30%,#6c6390,#3a3160 60%,#241c45);color:#8d84b5}
+.node .lbl{font-size:15px}
+.filters{display:flex;gap:5px;flex-wrap:wrap;flex:none}
+.filters button{display:flex;align-items:center;gap:4px;background:var(--panel);border:2.5px solid var(--ink);border-radius:9px;padding:4px 8px;font-size:13px}
+.filters button.on{background:var(--accent);color:var(--ink)}
+.filters img{width:15px;height:15px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:8px;flex:none}
+.tile{position:relative;aspect-ratio:1;padding:3px;background:none;border:0}
+.tile .duo{width:100%;height:100%}
+.tile .lv{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);background:var(--ink);color:var(--text);font-size:11px;border-radius:6px;padding:1px 5px;white-space:nowrap;z-index:2}
+.tile .chk{position:absolute;right:-2px;top:-2px;z-index:2;width:20px;height:20px;border-radius:50%;background:var(--good);border:2.5px solid var(--ink);display:grid;place-items:center;font-size:12px;color:var(--ink)}
+.tile.sel .duo{outline:3px solid #fff;outline-offset:1px}
+#detail{background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:10px;box-shadow:4px 4px 0 var(--ink);display:grid;grid-template-columns:76px 1fr;gap:10px;flex:none}
+table.st{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;width:100%;max-width:280px}
+table.st th{font-weight:400;color:var(--muted);text-align:right;padding:1px 6px;font-size:11px}
+table.st td{text-align:right;padding:1px 6px;border-top:1px solid rgba(255,255,255,.08)}
+table.st td:first-child,table.st th:first-child{text-align:left;padding-left:0;color:var(--muted)}
+table.st td.up{color:var(--good)}
+.xpb{position:relative;height:16px;border:2px solid var(--ink);border-radius:8px;background:#1a1336;overflow:hidden;max-width:280px}
+.xpb i{display:block;height:100%;background:linear-gradient(#9fd2ff,#2f86ea)}
+.xpb span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;text-shadow:1px 1px 0 var(--ink)}
+.ms{display:flex;flex-direction:column;gap:2px;font-size:12px;margin-top:2px}
+.ms div{display:flex;gap:8px;color:var(--muted);opacity:.7}
+.ms div b{flex:none;width:40px;font-variant-numeric:tabular-nums}
+.ms div.got{color:var(--good);opacity:1}
+.ms div.got b::after{content:" ✓"}
+.ms div.next{color:var(--accent);opacity:1}
+.foeList{display:flex;flex-direction:column;gap:6px}
+.foe{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;background:rgba(0,0,0,.2);border-radius:10px;padding:4px 6px}
+.foe .f{width:44px}
+.foe small{color:var(--muted);display:block;line-height:1.35}
+.rec{font-size:13px;padding:6px 8px;border-radius:10px;background:rgba(0,0,0,.25)}
+.rec.warn{color:var(--hot)}.rec.ok{color:var(--good)}
+.estat .enext{color:var(--ink);font-size:10px;line-height:1;background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:2px 4px;white-space:nowrap}
+#turnInfo{font-size:11px;color:var(--muted);min-height:14px;line-height:14px;text-align:center;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;flex:none}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;align-items:center}
+.legend img{width:20px;height:20px;vertical-align:-5px}
+#detail .duo{width:76px;height:76px}
+#detail .meta{min-width:0;display:flex;flex-direction:column;gap:4px}
+.colors{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.colors span{display:flex;align-items:center;gap:3px}
+.colors img{width:16px;height:16px}
+.colors .lock img{filter:grayscale(1);opacity:.5}
+.slots .duo{width:100%;height:100%}
+.slots button.slot{padding:0;border:0;background:none;aspect-ratio:1}
+.enemy.elite .efig svg{filter:drop-shadow(0 0 6px #ffcf3a) drop-shadow(0 5px 0 rgba(0,0,0,.35))}
+.ename.el{color:var(--accent)}
+.startBar{position:sticky;bottom:0;padding-block:10px 4px;background:linear-gradient(transparent,var(--bg) 35%);display:flex;justify-content:center;flex:none}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <pattern id="ht" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.3" fill="#000"/></pattern>
+</defs></svg>
+
+<div id="app">
+  <section id="scrMap">
+    <div class="hero">
+      <h1 class="logo">ZEITWÄCHTER</h1>
+      <div class="tag">100 Kapitel · 1000 Level</div>
+    </div>
+    <div class="teamPeek">
+      <div class="faces" id="peek"></div>
+      <button class="btn sm ghost" id="toTeam">Team</button>
+    </div>
+    <div id="tutSlot"></div>
+    <div class="chaps" id="chaps"></div>
+    <div class="chapHead"><div class="secTitle" id="chapName">Kapitel</div><span id="chapProg"></span></div>
+    <div id="route"></div>
+    <div class="foot" style="gap:14px;flex-wrap:wrap"><button class="link" id="expBtn">Spielstand sichern</button><button class="link" id="impBtn">Spielstand laden</button><button class="link" id="resetBtn">Spielstand zurücksetzen</button></div>
+  </section>
+
+  <section id="scrTeam" hidden>
+    <div class="topbar"><h2 id="teamTitle">Dein Team</h2><button class="btn sm ghost" id="teamDone">Zurück</button></div>
+    <div class="slots" id="slots"></div>
+    <div class="sum" id="sum"></div>
+    <div id="detail"></div>
+    <div class="secTitle" id="crewTitle">Crew</div>
+    <div class="filters" id="filters"></div>
+    <div id="grid"></div>
+    <div class="startBar" id="startBar" hidden><button class="btn" id="startBtn">Kampf starten!</button></div>
+  </section>
+
+  <section id="scrBattle" hidden>
+    <div id="bHead">
+      <div style="min-width:0"><div id="bTitle"></div><div id="bWave"></div></div>
+      <div style="display:flex;gap:6px"><button class="btn sm ghost" id="helpBtn" aria-label="Hilfe">?</button><button class="btn sm ghost" id="mute" aria-label="Ton an oder aus">Ton</button><button class="btn sm ghost" id="quitBtn">Rückzug</button></div>
+    </div>
+    <div id="stage"></div>
+    <div id="team"></div>
+    <div id="hpWrap"><div id="hp"><i></i></div><div id="hpTxt"></div></div>
+    <div id="timer"><i></i></div>
+    <div id="turnInfo">Ziehe eine Kugel, um zu beginnen.</div>
+    <div id="coach" hidden></div><div id="flash"></div><canvas id="fx"></canvas>
+    <div id="boardWrap"><canvas id="board" aria-label="Kugelfeld"></canvas><div id="combo"></div><div id="chip" hidden></div></div>
+  </section>
+</div>
+<div id="overlay" hidden></div>
+<div id="toast" hidden></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const INK = '#120c22';
+const COLS = 6, ROWS = 5;
+const COLORS = ['r','b','g','y','k','p'];
+const GEMC = {
+  r:{name:'Rot',    base:'#e8432e',light:'#ffa37d',dark:'#7d1710',sym:'#ffe08a'},
+  b:{name:'Blau',   base:'#2f86ea',light:'#a6d6ff',dark:'#123f86',sym:'#e6f4ff'},
+  g:{name:'Grün',   base:'#33b04a',light:'#b2f2a2',dark:'#10561f',sym:'#efffd0'},
+  y:{name:'Gelb',   base:'#f5bf1f',light:'#fff1a6',dark:'#8a5d00',sym:'#fffbe8'},
+  k:{name:'Schwarz',base:'#4b2d86',light:'#a88be6',dark:'#170b33',sym:'#ddccff'},
+  p:{name:'Pink',   base:'#f2559f',light:'#ffc6e2',dark:'#86184f',sym:'#fff0f7'},
+  s:{name:'Stein',  base:'#8b8f9b',light:'#dcdee4',dark:'#3d404a',sym:'#eceef2'}
+};
+const STRONG = {r:'g', g:'b', b:'r', y:'k', k:'y'};
+const WEAK = {r:'b', g:'r', b:'g'};
+const aff = (a, d) => STRONG[a] === d ? 2 : (WEAK[a] === d ? 0.5 : 1);
+const PBG = {r:'#ff8f72', b:'#7fbaff', g:'#86de8f', y:'#ffd966', k:'#a68bdc', p:'#ff9cc8'};
+
+/* ---------- Figuren ---------- */
+const CHARS = {
+  ilka:   {name:'Ilka Vey', role:'Anführerin', color:'b', hp:400, atk:95, heal:30,
+           look:{skin:'#f2c7a5',hair:'#ebe5dc',style:'bob',outfit:'#2f86ea',acc:['goggles']},
+           power:{name:'Chronosprung', t1:12, t2:24, fx1:[{type:'stun',turns:1}], fx2:[{type:'stun',turns:2},{type:'heal',pct:.25}],
+                  d1:'Betäubt alle Gegner 1 Runde.', d2:'Betäubt alle Gegner 2 Runden und heilt 25 % HP.'}},
+  rook:   {name:'Rook Ardent', role:'Angreifer', color:'r', hp:360, atk:130, heal:12,
+           look:{skin:'#c98a5e',hair:'#2b1a12',style:'spiky',outfit:'#c62f22',acc:['scar']},
+           power:{name:'Funkenschlag', cd:8, fx:[{type:'dmgAll',amt:500,color:'r'}], d:'500 roter Schaden an alle Gegner.'}},
+  mila:   {name:'Mila Sorn', role:'Heilerin', color:'g', hp:380, atk:72, heal:55,
+           look:{skin:'#f6d3b8',hair:'#c4562e',style:'bun',outfit:'#2f9a46',acc:['glasses']},
+           power:{name:'Feldlazarett', cd:6, fx:[{type:'heal',pct:.3}], d:'Heilt das Team um 30 % der max. HP.'}},
+  bolt:   {name:'Bolt', role:'Robo-Tank', color:'y', hp:520, atk:82, heal:20, look:{robot:true},
+           power:{name:'Überladung', cd:5, fx:[{type:'boost',color:'y',pct:.15}], d:'Alle gelben Kugeln auf dem Feld: +15 % Schaden.'}},
+  nox:    {name:'Nox Varga', role:'Angreiferin', color:'k', hp:340, atk:122, heal:15,
+           look:{skin:'#eadbd2',hair:'#1c1630',style:'long',outfit:'#3c2470',acc:['scarf'],scarf:'#a88be6'},
+           power:{name:'Schattenwandel', cd:7, fx:[{type:'convert',from:'g',to:'k'}], d:'Wandelt alle grünen Kugeln in schwarze.'}},
+  juno:   {name:'Juno Kade', role:'Stellwerkerin', color:'b', hp:400, atk:104, heal:30,
+           look:{skin:'#8a5a3c',hair:'#16110d',style:'wild',outfit:'#2a6fd0',acc:['headband']},
+           power:{name:'Fahrplanwechsel', cd:4, fx:[{type:'time',sec:4}], d:'+4 Sekunden Zugzeit für den nächsten Zug.'}},
+  tamsin: {name:'Tamsin Reed', role:'Feuerwerkerin', color:'r', hp:390, atk:112, heal:26,
+           look:{skin:'#f0c09a',hair:'#f2a83a',style:'buzz',outfit:'#d8452e',acc:['goggles']},
+           power:{name:'Glutregen', cd:7, fx:[{type:'convert',from:'b',to:'r'}], d:'Wandelt alle blauen Kugeln in rote.'}},
+  ottilie:{name:'Ottilie Brass', role:'Uhrmacherin', color:'y', hp:410, atk:98, heal:40,
+           look:{skin:'#f4d9c4',hair:'#7a7a86',style:'bun',outfit:'#d9a514',acc:['tophat','glasses']},
+           power:{name:'Feinjustierung', cd:6, fx:[{type:'purify'}], d:'Steine werden zu Pink, alle Sperren lösen sich.'}},
+  kasimir:{name:'Kasimir Quell', role:'Stadtwächter', color:'g', hp:470, atk:96, heal:28,
+           look:{skin:'#d8a07a',hair:'#5a3a1c',style:'buzz',outfit:'#2b8c3e',acc:['beard']},
+           power:{name:'Haltesignal', cd:9, fx:[{type:'stun',turns:2}], d:'Betäubt alle Gegner 2 Runden.'}},
+  vesper: {name:'Vesper', role:'Ex-Wächterin', color:'k', hp:380, atk:135, heal:18,
+           look:{skin:'#e4dce6',hair:'#8f3fd0',style:'long',outfit:'#2a1850',acc:['eyepatch']},
+           power:{name:'Rostgift', cd:6, fx:[{type:'poison',pct:.08,turns:3}], d:'Vergiftet das Ziel: 8 % seiner max. HP pro Runde, 3 Runden.'}}
+};
+
+/* Zweitfarben der festen Figuren (aktiv ab Level 10) */
+const SEC_LV = 10;
+Object.entries({ilka:'y', rook:'r', mila:'b', bolt:'k', nox:'g', juno:'y', tamsin:'g', ottilie:'b', kasimir:'r', vesper:'k'}).forEach(([k, v]) => CHARS[k].sec = v);
+
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const C5 = ['r','b','g','y','k'];
+function fxDesc(fx) {
+  return fx.map(f => {
+    switch (f.type) {
+      case 'dmgAll': return `${f.amt} ${GEMC[f.color].name.toLowerCase()}er Schaden an alle Gegner.`;
+      case 'dmgOne': return `${f.amt} ${GEMC[f.color].name.toLowerCase()}er Schaden an das Ziel.`;
+      case 'heal': return `Heilt das Team um ${Math.round(f.pct * 100)} % der max. HP.`;
+      case 'boost': return `Alle ${GEMC[f.color].name.toLowerCase()}en Kugeln auf dem Feld: +${Math.round(f.pct * 100)} % Schaden.`;
+      case 'convert': return `Wandelt alle ${GEMC[f.from].name.toLowerCase()}en Kugeln in ${GEMC[f.to].name.toLowerCase()}e.`;
+      case 'stun': return `Betäubt alle Gegner ${f.turns} Runden.`;
+      case 'poison': return `Vergiftet das Ziel: ${Math.round(f.pct * 100)} % seiner max. HP pro Runde, ${f.turns} Runden.`;
+      case 'time': return `+${f.sec} Sekunden Zugzeit für den nächsten Zug.`;
+      case 'purify': return 'Steine werden zu Pink, alle Sperren lösen sich.';
+    }
+    return '';
+  }).join(' ');
+}
+/* Weitere Crewmitglieder (werden über die 100 Levels freigeschaltet) */
+const GEN_NAMES = ['Ada Brenn','Theo Lumen','Kira Voss','Emil Faro','Lene Quast','Rafael Ort','Wanda Pell','Ivo Stern','Fenna Holt','Milo Zink','Greta Funk',
+  'Anouk Reiher','Bastian Kühl','Zora Lind','Henrik Moos','Pia Kessel','Yusuf Tal','Nele Sand','Oskar Fluh','Selma Kron','Lior Weit','Maren Docht'];
+(() => {
+  const FIRST = ['Alma','Bruno','Clea','Dario','Elif','Finn','Gesa','Hugo','Ines','Jonas','Kaja','Lasse','Mira','Nils','Olga','Paul','Quinn','Rosa','Sami','Tilda','Udo','Vera','Wim','Xenia','Yara','Zeno','Aiko','Bela','Cosmo','Dunja'];
+  const LAST = ['Achat','Brück','Cirrus','Dorn','Eibe','Fink','Glas','Hain','Iris','Jaspis','Kiesel','Lerche','Mond','Nord','Opal','Pfeil','Quarz','Rabe','Saum','Tau','Ulm','Vogt','Wolke','Zeder'];
+  const R = rng(4242), have = new Set(GEN_NAMES);
+  while (GEN_NAMES.length < 80) { const nm = FIRST[Math.floor(R() * FIRST.length)] + ' ' + LAST[Math.floor(R() * LAST.length)]; if (!have.has(nm)) { have.add(nm); GEN_NAMES.push(nm); } }
+})();
+(() => {
+  const SK = ['#f2c7a5','#c98a5e','#8a5a3c','#f6d3b8','#d8a07a','#6b4430','#eadbd2','#e9b48a'];
+  const HA = ['#2b1a12','#c4562e','#f2a83a','#16110d','#7a7a86','#e8e3da','#5a3a1c','#8f3fd0','#2f86ea','#d84a8a'];
+  const ST = ['long','bob','bun','spiky','buzz','wild'];
+  const AC = [[],['goggles'],['glasses'],['scar'],['headband'],['scarf'],['eyepatch'],['beard'],['tophat'],['goggles','scarf'],['glasses','scarf']];
+  const OUT = {r:'#c62f22', b:'#2a6fd0', g:'#2b8c3e', y:'#d9a514', k:'#3c2470'};
+  const ARCH = {off:['Angreifer',[340,138,14]], tank:['Verteidiger',[560,86,22]], heal:['Heiler',[380,76,58]], bal:['Allrounder',[430,106,32]]};
+  const PW = ['Sternsplitter','Zeitfaden','Glutherz','Morgenruf','Pendelschlag','Funkenregen','Echoklinge','Nebelband','Kompassnadel','Lichtbogen','Rostbann'];
+  GEN_NAMES.forEach((nm, i) => {
+    const R = rng(1000 + i * 77), pick = a => a[Math.floor(R() * a.length)];
+    const color = C5[i % 5], sec = C5[(i * 3 + 2) % 5];
+    const arch = ['off','tank','heal','bal'][(i + Math.floor(i / 5)) % 4];
+    const [role, base] = ARCH[arch];
+    const other = C5.filter(c => c !== color);
+    const tpl = [
+      [{type:'dmgAll', amt:450, color}, 8], [{type:'dmgOne', amt:1100, color}, 7], [{type:'heal', pct:.3}, 6], [{type:'boost', color, pct:.15}, 5],
+      [{type:'convert', from:other[i % 4], to:color}, 7], [{type:'stun', turns:2}, 9], [{type:'poison', pct:.08, turns:3}, 6], [{type:'time', sec:4}, 4], [{type:'purify'}, 6]
+    ][arch === 'heal' ? [2, 8, 2, 3][i % 4] : (i * 5 + 3) % 9];
+    CHARS['c' + i] = {name:nm, role, color, sec,
+      hp:Math.round(base[0] * (.92 + R() * .16)), atk:Math.round(base[1] * (.92 + R() * .16)), heal:Math.round(base[2] * (.9 + R() * .2)),
+      look:{skin:pick(SK), hair:pick(HA), style:pick(ST), outfit:OUT[color], acc:pick(AC), scarf:GEMC[sec].base},
+      power:{name:PW[i % PW.length], cd:tpl[1], fx:[tpl[0]], d:fxDesc([tpl[0]])}};
+  });
+})();
+const RECRUITS = ['juno','tamsin','ottilie','kasimir','vesper', ...GEN_NAMES.map((_, i) => 'c' + i)];
+
+const ETYPES = {
+  drone: {name:'Klickdrohne', color:'r', hp:420, def:0,  atk:105, cd:2, pat:['atk']},
+  shard: {name:'Splitterling', color:'b', hp:560, def:10, atk:135, cd:3, pat:['atk']},
+  vine:  {name:'Rankengeist', color:'g', hp:620, def:10, atk:112, cd:2, pat:['atk','poison','atk']},
+  spider:{name:'Glimmspinne', color:'y', hp:560, def:25, atk:138, cd:2, pat:['lock','atk','atk']},
+  voidw: {name:'Der Leere', color:'k', hp:760, def:40, atk:170, cd:3, pat:['stone','atk','shield','atk'], shieldN:2}
+};
+const ALL = ['drone','shard','vine','spider','voidw'];
+const CHAPS = [
+  {name:'Bahnhof der Zeit', scene:0, bg:['#3b2f72','#c95a3f'], pool:['drone','shard']},
+  {name:'Das Glashaus', scene:1, bg:['#163f33','#7fb04f'], pool:['vine','drone','shard']},
+  {name:'Der Spiegelsaal', scene:2, bg:['#25336b','#d4ad54'], pool:['spider','shard','vine']},
+  {name:'Die stille Stadt', scene:3, bg:['#17112e','#5b4a8f'], pool:['voidw','spider','drone']},
+  {name:'Das Uhrwerkherz', scene:4, bg:['#2b0f24','#d0732f'], pool:ALL},
+  {name:'Nebelhafen', scene:0, bg:['#1d2f4a','#6f8fa8'], pool:ALL},
+  {name:'Sternenwald', scene:1, bg:['#0f1f3a','#5a3f8f'], pool:ALL},
+  {name:'Kristallhöhlen', scene:2, bg:['#102a3a','#3fb0c8'], pool:ALL},
+  {name:'Ruinen von Morgen', scene:3, bg:['#2a1a12','#a8643a'], pool:ALL},
+  {name:'Das Ende der Zeit', scene:4, bg:['#0a0614','#7a2fd0'], pool:ALL}
+];
+const BOSSES = [
+  {name:'Der Weichensteller', col:'r', pat:['atk','lock','atk','shield']},
+  {name:'Die Dornenkönigin', col:'g', pat:['poison','atk','heal','atk','stone']},
+  {name:'Der Spiegelfürst', col:'y', pat:['shield','atk','lock','atk']},
+  {name:'Der Stille', col:'k', pat:['stone','atk','shield','atk','heal']},
+  {name:'Der Uhrmacher', col:'k', pat:['shield','atk','stone','atk','heal','lock','atk']},
+  {name:'Kapitän Nebelzahn', col:'b', pat:['atk','poison','atk','lock']},
+  {name:'Die Sternenhüterin', col:'y', pat:['heal','atk','shield','atk','stone']},
+  {name:'Der Kristallwurm', col:'b', pat:['stone','atk','atk','shield']},
+  {name:'Das Echo', col:'r', pat:['lock','atk','poison','atk','heal']},
+  {name:'Der Uhrmacher, zweite Zeit', col:'k', pat:['shield','atk','stone','poison','atk','heal','lock','atk']}
+];
+const STORY = [
+  {intro:[{w:'ilka', t:'Bahnsteig 9, Oktober 1923. Laut Chronometer sollte hier gerade ein ganz normaler Zug einfahren.'},
+          {w:'rook', t:'Stattdessen fahren hier Uhrwerk-Drohnen ein. Darf ich?'},
+          {w:'bolt', t:'WARNUNG: ZEITRISS-STABILITÄT 34 %. EMPFEHLUNG: SCHNELL KAPUTT MACHEN.'},
+          {w:'ilka', t:'Kugel antippen, festhalten, durchs Feld ziehen. Je mehr Ketten, desto härter der Treffer. Pink heilt uns.'}],
+   boss:[{w:'boss', t:'Alle Züge fahren nach meinem Fahrplan. Auch eurer.'}],
+   outro:[{w:'ilka', t:'Der Weichensteller ist besiegt. Aber das Uhrwerk tickt weiter.'}, {w:'bolt', t:'ZEITRISS-SPUR GEFUNDEN. ZIEL: GLASHAUS.'}]},
+  {intro:[{w:'mila', t:'Diese Pflanzen wachsen rückwärts. Das ist … medizinisch beunruhigend.'}, {w:'nox', t:'Sie flüstern. Und sie sind giftig. Haltet pinke Kugeln bereit.'}, {w:'rook', t:'Ich hab Pflanzen noch nie getraut.'}],
+   boss:[{w:'boss', t:'Meine Dornen halten die Zeit fest. Bleibt doch ein Weilchen.'}],
+   outro:[{w:'mila', t:'Die Pflanzen wachsen wieder vorwärts. Gute Arbeit, alle.'}]},
+  {intro:[{w:'nox', t:'Hundert Spiegel, und in jedem sehe ich uns ein bisschen später.'}, {w:'bolt', t:'SPINNEN DETEKTIERT. SIE SPERREN KUGELN. ICH MAG SIE NICHT.'}, {w:'ilka', t:'Gesperrte Kugeln lassen sich nicht bewegen. Zieht drum herum.'}],
+   boss:[{w:'boss', t:'Jeder Spiegel zeigt eure Niederlage. Ich habe sie mir schon angesehen.'}],
+   outro:[{w:'ilka', t:'Der Spiegelfürst kannte den Uhrmacher. Seine Spur führt in eine Stadt, in der die Zeit stillsteht.'}]},
+  {intro:[{w:'nox', t:'Hier hat er es geschafft. Niemand bewegt sich. Nur die Leeren.'}, {w:'mila', t:'Sie verwandeln Kugeln in Stein. Und ihr Combo-Schild schluckt kleine Angriffe.'}, {w:'ilka', t:'Dann eben mehr Combos als der Schild verlangt.'}],
+   boss:[{w:'boss', t:'…'}],
+   outro:[{w:'rook', t:'Die Stadt atmet wieder. Ich hör sogar Vögel.'}, {w:'ilka', t:'Nächstes Ziel: das Herz des Uhrwerks.'}]},
+  {intro:[{w:'ilka', t:'Das Uhrwerkherz. Hier fing alles an.'}, {w:'rook', t:'Und hier hört es auf. Wer ist dabei?'}, {w:'bolt', t:'ALLE. FREUDE: 87 %. ANGST: 13 %.'}],
+   boss:[{w:'boss', t:'Ilka Vey. Du bringst Unordnung in mein vollkommenes Uhrwerk.'}, {w:'ilka', t:'Zeit ist kein Uhrwerk. Sie ist ein Fluss. Und wir reißen deinen Damm ein.'}],
+   outro:[{w:'ilka', t:'Der Uhrmacher ist fort. Aber seine Maschinen laufen noch. Irgendwo da draußen.'}]},
+  {intro:[{w:'ilka', t:'Seine Uhrwerke tauchen weiter auf. Diesmal im Nebel.'}, {w:'rook', t:'Nebel. Toll. Ich seh nicht mal, wen ich hauen soll.'}, {w:'bolt', t:'NEBELSENSOREN AKTIV. ZIELE: VIELE.'}],
+   boss:[{w:'boss', t:'Kapitän Nebelzahn hat noch nie ein Schiff verloren. Und keine Wette.'}],
+   outro:[{w:'ilka', t:'Im Logbuch des Kapitäns steht ein Ort: der Sternenwald.'}]},
+  {intro:[{w:'nox', t:'Die Bäume hier leuchten wie Sternbilder.'}, {w:'mila', t:'Und sie sind wach. Bleibt zusammen.'}],
+   boss:[{w:'boss', t:'Jeder Stern hier gehört mir. Auch eure.'}],
+   outro:[{w:'nox', t:'Die Sterne zeigen nach unten. In die Kristallhöhlen.'}]},
+  {intro:[{w:'bolt', t:'ECHO-ORTUNG: GROSSES LEBEWESEN. SEHR GROSS.'}, {w:'ilka', t:'Dann seid leise. Und schnell.'}],
+   boss:[{w:'boss', t:'(Ein Grollen bringt die Kristalle zum Singen.)'}],
+   outro:[{w:'ilka', t:'In den Kristallen sehe ich Ruinen. Ruinen von morgen.'}]},
+  {intro:[{w:'rook', t:'Das ist unsere Stadt. Nur in hundert Jahren.'}, {w:'ilka', t:'Noch ist es nicht so weit. Und wir sorgen dafür, dass es nie so weit kommt.'}],
+   boss:[{w:'boss', t:'Ich bin alles, was ihr je gesagt habt. Nur lauter.'}],
+   outro:[{w:'bolt', t:'ZEITLINIE STABIL. BIS AUF EINEN PUNKT: DAS ENDE DER ZEIT.'}]},
+  {intro:[{w:'ilka', t:'Hier endet alles. Und hier wartet er.'}, {w:'mila', t:'Egal was passiert: Ich bin stolz auf diese Crew.'}, {w:'rook', t:'Weniger reden, mehr Combos.'}],
+   boss:[{w:'boss', t:'Ihr habt mich einmal angehalten. Diesmal läuft meine Uhr rückwärts.'}],
+   outro:[{w:'ilka', t:'Es ist vorbei. Die Zeit fließt wieder.'}, {w:'bolt', t:'MISSION ERFÜLLT. FREUDE: 1000 %.'}]}
+];
+const GREET = ['Ich hab euch kämpfen sehen. Ich bin dabei!', 'Zeitreisen? Klingt besser als mein Alltag. Wann geht\'s los?', 'Ihr braucht Verstärkung. Und ich brauche ein Abenteuer.',
+  'Endlich wehrt sich jemand gegen das Uhrwerk.', 'Ich kenne die Gegend wie meine Westentasche. Nehmt mich mit.', 'Ich kämpfe lieber an eurer Seite als gegen eure Feinde allein.'];
+const MAXN = 1000, NCH = 100, LVCAP = 250;
+(() => {
+  const ADJ = ['Vergessen','Gläsern','Flüsternd','Rostig','Gefroren','Brennend','Schwebend','Verloren','Ewig','Zerbrochen','Leuchtend','Stumm','Versunken','Tickend','Neblig','Golden','Hohl','Wild'];
+  const NOUN = [['Hafen','m'],['Wald','m'],['Höhlen','p'],['Ruinen','p'],['Stadt','f'],['Wüste','f'],['Gipfel','m'],['Archiv','n'],['Bahnhof','m'],['Garten','m'],
+    ['Leuchtturm','m'],['Labyrinth','n'],['Sternwarte','f'],['Markt','m'],['Kathedrale','f'],['Fabrik','f'],['Insel','f'],['Moor','n'],['Schlucht','f'],['Turm','m']];
+  const END = {m:'er', f:'e', n:'es', p:'e'};
+  const TITLES = ['Fürst','Lady','Kapitän','Meister','Baronin','General','Herzogin','Doktor','Graf','Königin'];
+  const BN = ['Pendulor','Velora','Grimmzahn','Moragon','Splitterkron','Nebelschwinge','Eisenauge','Chronox','Rußherz','Sirra','Kettenmaul','Zwielicht','Ombrax','Kaliber','Morgenfresser','Tickara','Rostbart','Glimmora','Uhrgrimm','Vexa'];
+  const ACTS = ['lock','stone','shield','heal','poison'];
+  const CREW = ['rook','mila','bolt','nox'];
+  const IN = [n => `${n}. Der Riss hat sich bis hierher ausgebreitet.`, n => `Willkommen in: ${n}. Klingt gemütlicher, als es ist.`, n => `${n}. Bleibt zusammen und achtet auf die Farben.`, n => `Neues Ziel: ${n}. Die Uhrwerke werden stärker.`];
+  const CL = {rook:['Endlich wieder was zu tun.','Ich übernehme die Großen.','Wer zuerst trifft, gewinnt.'], mila:['Haltet Pink bereit, das wird kein Spaziergang.','Ich passe auf euch auf.','Keine Heldentaten ohne Heilung, verstanden?'],
+    bolt:['GEFAHRENSTUFE: HOCH. MOTIVATION: HÖHER.','SCANNE UMGEBUNG. ERGEBNIS: UNHEIMLICH.','FREUDE: 64 %. VORSICHT: 36 %.'], nox:['Hier riecht es nach verbrannter Zeit.','Die Schatten bewegen sich. Wir auch.','Ich mag diesen Ort nicht.']};
+  const BL = ['Ihr seid weit gekommen. Hier endet eure Reise.', 'Die Zeit gehört mir. Jede einzelne Sekunde.', 'Noch nie hat mich jemand besiegt.', 'Tick. Tack. Eure Zeit ist abgelaufen.', 'Ich habe auf euch gewartet. Sehr lange.', 'Ihr seid nur ein Rauschen im Uhrwerk.'];
+  const used = new Set(CHAPS.map(c => c.name));
+  for (let c = CHAPS.length; c < NCH; c++) {
+    const R = rng(c * 104729 + 7), pk = a => a[Math.floor(R() * a.length)];
+    let name; do { const [nn, g] = pk(NOUN); name = pk(ADJ) + END[g] + ' ' + nn; } while (used.has(name)); used.add(name);
+    const h1 = Math.floor(R() * 360), h2 = (h1 + 40 + Math.floor(R() * 120)) % 360;
+    CHAPS.push({name, scene:c % 5, bg:[`hsl(${h1} 45% 16%)`, `hsl(${h2} 50% 40%)`], pool:ALL});
+    const pat = ['atk'], np = 3 + Math.floor(R() * 3);
+    for (let i = 0; i < np; i++) pat.push(R() < .45 ? 'atk' : pk(ACTS));
+    if (pat.filter(a => a === 'atk').length < 2) pat.push('atk');
+    BOSSES.push({name:pk(TITLES) + ' ' + pk(BN), col:pk(C5), pat});
+    const who = CREW[c % 4];
+    STORY.push({intro:[{w:'ilka', t:IN[c % IN.length](name)}, {w:who, t:pk(CL[who])}], boss:[{w:'boss', t:pk(BL)}],
+      outro:[{w:'ilka', t:`${name} ist wieder sicher. Weiter zum nächsten Riss!`}]});
+  }
+})();
+const REWARD = {};
+(() => { let ri = 0; for (let n = 1; n <= MAXN && ri < RECRUITS.length; n++) if (n <= 100 ? (n % 4 === 0 || n % 10 === 0) : n % 15 === 0) REWARD[n] = RECRUITS[ri++]; })();
+const LV = {};
+const TUT_L = {n:0, c:0, k:-1, C:null, name:'Tutorial', sub:'Training mit der Crew', waves:[[{t:'drone', col:'r', tut:true}]], hpM:1, atkM:1, defM:1, xp:120, bg:['#2b2f6b','#3f8fa8'], scene:0, boss:false};
+function getLevel(n) {
+  if (n === 0) return TUT_L;
+  if (LV[n]) return LV[n];
+  const c = Math.floor((n - 1) / 10), k = (n - 1) % 10, C = CHAPS[c], R = rng(n * 7919 + 13);
+  const nW = (k >= 5 || c >= 30) ? 4 : 3, waves = [];
+  for (let w = 0; w < nW; w++) {
+    if (k === 9 && w === nW - 1) { waves.push([{t:'boss', col:BOSSES[c].col, elite:false}]); continue; }
+    const cnt = 1 + (R() < .75 ? 1 : 0) + (R() < .12 + k * .05 + Math.min(.3, c * .02) ? 1 : 0), wave = [];
+    for (let j = 0; j < cnt; j++) {
+      const t = C.pool[Math.floor(R() * C.pool.length)];
+      let col = ETYPES[t].color;
+      if (R() < Math.min(.6, .05 + .12 * c)) col = C5[Math.floor(R() * 5)];
+      wave.push({t, col, elite:(k >= 6 && j === 0 && R() < .4 + Math.min(.4, c * .01)) || (c >= 20 && j === 1 && R() < Math.min(.4, c * .004))});
+    }
+    waves.push(wave);
+  }
+  LV[n] = {n, c, k, C, name:k === 9 ? BOSSES[c].name : `${C.name} ${k + 1}`, sub:k === 9 ? 'Kapitelboss' : `${nW} Wellen`,
+    waves, hpM:1.9 + .14 * Math.min(n - 1, 99) + .035 * Math.max(0, n - 100), atkM:1.3 + .07 * Math.min(n - 1, 99) + .025 * Math.max(0, n - 100),
+    defM:1 + .05 * Math.min(n - 1, 99) + .02 * Math.max(0, n - 100), xp:50 + 14 * n, bg:C.bg, scene:C.scene, boss:k === 9};
+  return LV[n];
+}
+
+/* ---------- SVG-Zeichnungen ---------- */
+function portrait(ch) {
+  const L = ch.look, bg = PBG[ch.color];
+  const S = `stroke="${INK}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"`;
+  const head = `<rect width="100" height="100" fill="${bg}"/><rect width="100" height="100" fill="url(#ht)" opacity=".18"/>`;
+  if (L.robot) {
+    return `<svg viewBox="0 0 100 100" aria-hidden="true">${head}<g ${S}>
+      <line x1="50" y1="22" x2="50" y2="9"/><circle cx="50" cy="8" r="4.5" fill="#ff5a4e"/>
+      <path d="M13 102 C15 82 30 76 50 76 C70 76 85 82 87 102Z" fill="#c9922a"/>
+      <circle cx="50" cy="90" r="6" fill="#7dfcff"/>
+      <rect x="43" y="64" width="14" height="14" fill="#8d8aa0"/>
+      <rect x="17" y="38" width="10" height="17" rx="3" fill="#8d8aa0"/><rect x="73" y="38" width="10" height="17" rx="3" fill="#8d8aa0"/>
+      <rect x="23" y="21" width="54" height="47" rx="13" fill="#eab93a"/>
+      <path d="M62 24 C74 28 76 46 72 64 C70 46 68 32 62 24Z" fill="#000" opacity=".16" stroke="none"/>
+      <rect x="30" y="33" width="40" height="19" rx="9.5" fill="#1b1430"/>
+      <circle cx="41" cy="42.5" r="5" fill="#7dfcff" stroke="none"/><circle cx="59" cy="42.5" r="5" fill="#7dfcff" stroke="none"/>
+      <circle cx="39.5" cy="41" r="1.6" fill="#fff" stroke="none"/><circle cx="57.5" cy="41" r="1.6" fill="#fff" stroke="none"/>
+      <path d="M39 59 L44 62 L50 59 L56 62 L61 59" fill="none"/>
+      <circle cx="29" cy="27" r="1.6" fill="${INK}" stroke="none"/><circle cx="71" cy="27" r="1.6" fill="${INK}" stroke="none"/>
+      <circle cx="29" cy="62" r="1.6" fill="${INK}" stroke="none"/><circle cx="71" cy="62" r="1.6" fill="${INK}" stroke="none"/>
+    </g></svg>`;
+  }
+  const h = L.hair;
+  let back = '', front = '';
+  switch (L.style) {
+    case 'long':
+      back = `<path d="M23 50 C21 26 36 18 50 18 C64 18 79 26 77 50 L82 92 L64 86 L63 62 L37 62 L36 86 L18 92Z" fill="${h}"/>`;
+      front = `<path d="M27 47 C28 29 39 22 50 22 C62 22 72 29 73 47 C64 37 52 33 44 35 C37 37 31 41 27 47Z" fill="${h}"/>`; break;
+    case 'bob':
+      back = `<path d="M23 60 C19 30 35 18 50 18 C65 18 81 30 77 60 L68 61 L68 48 L32 48 L32 61Z" fill="${h}"/>`;
+      front = `<path d="M27 48 C27 30 38 22 50 22 C62 22 73 30 73 48 C70 39 62 33 50 33 C42 35 35 38 32 46Z" fill="${h}"/>`; break;
+    case 'bun':
+      back = `<circle cx="50" cy="17" r="10" fill="${h}"/>`;
+      front = `<path d="M27 46 C27 29 38 22 50 22 C62 22 73 29 73 46 C66 36 34 36 27 46Z" fill="${h}"/>`; break;
+    case 'spiky':
+      front = `<path d="M26 47 L28 29 L35 34 L38 19 L46 29 L52 15 L57 28 L65 19 L66 33 L74 28 L74 47 C66 37 34 37 26 47Z" fill="${h}"/>`; break;
+    case 'buzz':
+      front = `<path d="M28 43 C28 28 38 23 50 23 C62 23 72 28 72 43 C66 35 34 35 28 43Z" fill="${h}"/>`; break;
+    case 'wild':
+      back = [[30,38,10],[37,26,11],[50,21,12],[63,26,11],[70,38,10],[26,50,8],[74,50,8]].map(c => `<circle cx="${c[0]}" cy="${c[1]}" r="${c[2]}" fill="${h}"/>`).join('');
+      front = `<path d="M29 42 C32 32 42 28 50 30 C58 28 68 32 71 42 C64 37 36 37 29 42Z" fill="${h}"/>`; break;
+  }
+  const accs = (L.acc || []).map(a => {
+    switch (a) {
+      case 'goggles': return `<rect x="26" y="31" width="48" height="6" rx="3" fill="#5a3b1c"/><circle cx="40" cy="33" r="7" fill="#9fe2ff"/><circle cx="60" cy="33" r="7" fill="#9fe2ff"/><circle cx="38" cy="31" r="2" fill="#fff" stroke="none"/><circle cx="58" cy="31" r="2" fill="#fff" stroke="none"/>`;
+      case 'glasses': return `<circle cx="41" cy="50" r="6.5" fill="#bfe6ff" fill-opacity=".3"/><circle cx="59" cy="50" r="6.5" fill="#bfe6ff" fill-opacity=".3"/><path d="M47.5 50 L52.5 50" fill="none"/>`;
+      case 'scarf': return `<path d="M33 69 C40 76 60 76 67 69 L69 78 C60 85 40 85 31 78Z" fill="${L.scarf}"/><path d="M57 79 L63 96 L53 94Z" fill="${L.scarf}"/>`;
+      case 'scar': return `<path d="M61 55 L67 64" fill="none" stroke-width="1.8"/><path d="M62 61 L66 58" fill="none" stroke-width="1.5"/>`;
+      case 'headband': return `<path d="M28 39 C40 33 60 33 72 39 L72 44 C60 38 40 38 28 44Z" fill="#ffcf3a"/>`;
+      case 'tophat': return `<rect x="35" y="3" width="30" height="22" fill="#2a1c3c"/><rect x="35" y="16" width="30" height="5" fill="#c43a5a"/><ellipse cx="50" cy="25" rx="27" ry="4.5" fill="#2a1c3c"/>`;
+      case 'eyepatch': return `<path d="M29 40 L71 57" fill="none" stroke-width="1.8"/><ellipse cx="59" cy="50" rx="6.5" ry="5.5" fill="${INK}"/>`;
+      case 'beard': return `<path d="M29 54 C31 72 42 77 50 77 C58 77 69 72 71 54 C64 64 58 67 50 67 C42 67 36 64 29 54Z" fill="${L.hair}"/><path d="M42 61 C46 58 54 58 58 61" fill="${L.hair}"/>`;
+    }
+    return '';
+  }).join('');
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">${head}<g ${S}>
+    ${back}
+    <path d="M12 102 C14 80 30 73 50 73 C70 73 86 80 88 102Z" fill="${L.outfit}"/>
+    <path d="M12 102 C14 80 30 73 50 73 C70 73 86 80 88 102Z" fill="url(#ht)" opacity=".2" stroke="none"/>
+    <rect x="43" y="60" width="14" height="15" fill="${L.skin}"/>
+    <path d="M41 74 L50 85 L59 74" fill="none"/>
+    <ellipse cx="50" cy="47" rx="22" ry="25" fill="${L.skin}"/>
+    <path d="M58 24 C74 30 76 62 60 71 C68 58 68 36 58 24Z" fill="#000" opacity=".13" stroke="none"/>
+    <ellipse cx="41" cy="50" rx="2.7" ry="3.5" fill="${INK}" stroke="none"/><ellipse cx="59" cy="50" rx="2.7" ry="3.5" fill="${INK}" stroke="none"/>
+    <circle cx="42" cy="48.8" r="1" fill="#fff" stroke="none"/><circle cx="60" cy="48.8" r="1" fill="#fff" stroke="none"/>
+    <path d="M36 43 L45 41.5" fill="none"/><path d="M55 41.5 L64 43" fill="none"/>
+    <ellipse cx="35" cy="57" rx="3.2" ry="1.7" fill="#ff6f86" opacity=".4" stroke="none"/><ellipse cx="65" cy="57" rx="3.2" ry="1.7" fill="#ff6f86" opacity=".4" stroke="none"/>
+    <path d="M44 61 Q50 66 56 61" fill="none"/>
+    ${front}${accs}
+  </g></svg>`;
+}
+
+function gearTeeth(cx, cy, r, n, fill) {
+  let s = '';
+  for (let i = 0; i < n; i++) s += `<rect x="${cx - 4}" y="${cy - r - 6}" width="8" height="10" rx="2" fill="${fill}" transform="rotate(${i * 360 / n} ${cx} ${cy})"/>`;
+  return s;
+}
+
+const ESVG = {};
+function baseEnemySvg(t) {
+  if (ESVG[t]) return ESVG[t];
+  const S = `stroke="${INK}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
+  let s = '';
+  switch (t) {
+    case 'drone': s = `<svg viewBox="0 0 120 120" aria-hidden="true"><g ${S}>
+      <line x1="60" y1="34" x2="60" y2="20"/>
+      <ellipse cx="43" cy="17" rx="16" ry="5" fill="#ddd6ec"/><ellipse cx="77" cy="17" rx="16" ry="5" fill="#ddd6ec"/><circle cx="60" cy="18" r="5" fill="#ffcf3a"/>
+      ${gearTeeth(60, 66, 32, 10, '#8e2a1c')}
+      <circle cx="60" cy="66" r="32" fill="#e8432e"/>
+      <circle cx="60" cy="66" r="32" fill="url(#ht)" opacity=".15" stroke="none"/>
+      <path d="M74 40 C94 54 92 86 70 96 C84 80 86 58 74 40Z" fill="#000" opacity=".2" stroke="none"/>
+      <rect x="91" y="61" width="10" height="9" fill="#b8b0c8"/><ellipse cx="106" cy="57" rx="5" ry="8" fill="#b8b0c8"/><ellipse cx="106" cy="74" rx="5" ry="8" fill="#b8b0c8"/>
+      <ellipse cx="60" cy="64" rx="21" ry="14" fill="#2a1530"/>
+      <path d="M44 57 L57 63 L44 68Z" fill="#ffd84a"/><path d="M76 57 L63 63 L76 68Z" fill="#ffd84a"/>
+      <path d="M48 85 L72 85" fill="none"/>
+      <circle cx="40" cy="47" r="2" fill="${INK}" stroke="none"/><circle cx="80" cy="47" r="2" fill="${INK}" stroke="none"/>
+      <ellipse cx="46" cy="45" rx="8" ry="4" fill="#fff" opacity=".45" stroke="none" transform="rotate(-30 46 45)"/>
+    </g></svg>`; break;
+    case 'shard': s = `<svg viewBox="0 0 120 120" aria-hidden="true"><g ${S}>
+      <path d="M32 74 L16 52 L28 30 L42 54Z" fill="#8cc6ff"/>
+      <path d="M88 74 L104 48 L94 26 L78 52Z" fill="#8cc6ff"/>
+      <path d="M60 6 L85 40 L79 97 L60 113 L41 97 L35 40Z" fill="#2f86ea"/>
+      <path d="M60 6 L85 40 L79 97 L60 113Z" fill="#000" opacity=".18" stroke="none"/>
+      <path d="M35 40 L60 52 L85 40 M41 97 L60 86 L79 97 M60 6 L60 52" fill="none" stroke-width="1.6" opacity=".55"/>
+      <ellipse cx="50" cy="60" rx="6.5" ry="8.5" fill="#eef8ff"/><ellipse cx="70" cy="60" rx="6.5" ry="8.5" fill="#eef8ff"/>
+      <circle cx="51" cy="62" r="3" fill="${INK}" stroke="none"/><circle cx="69" cy="62" r="3" fill="${INK}" stroke="none"/>
+      <path d="M44 50 L55 54" fill="none"/><path d="M76 50 L65 54" fill="none"/>
+      <path d="M47 79 L52 74 L57 79 L62 74 L67 79 L72 75" fill="none"/>
+      <path d="M50 18 L43 33" stroke="#fff" opacity=".75" fill="none"/>
+    </g></svg>`; break;
+    case 'vine': s = `<svg viewBox="0 0 120 120" aria-hidden="true"><g ${S}>
+      <path d="M60 14 C56 4 66 0 72 6" fill="none"/>
+      <path d="M28 42 C12 30 8 46 17 52 C24 55 29 48 28 42Z" fill="#8ee06a"/>
+      <path d="M92 38 C108 28 113 44 103 50 C96 53 92 46 92 38Z" fill="#8ee06a"/>
+      <path d="M60 14 C88 14 98 44 92 70 C88 90 98 104 86 112 C78 100 72 110 60 112 C50 108 44 114 34 110 C24 102 32 88 28 72 C22 44 32 14 60 14Z" fill="#33b04a"/>
+      <path d="M60 14 C88 14 98 44 92 70 C88 90 98 104 86 112 C78 100 72 110 60 112 C50 108 44 114 34 110 C24 102 32 88 28 72 C22 44 32 14 60 14Z" fill="url(#ht)" opacity=".15" stroke="none"/>
+      <path d="M78 20 C96 34 96 62 88 82 C92 60 90 38 78 20Z" fill="#000" opacity=".2" stroke="none"/>
+      <path d="M40 30 C46 40 42 48 48 56" fill="none" stroke-width="1.8" opacity=".5"/>
+      <ellipse cx="48" cy="56" rx="8" ry="11" fill="#0e2412"/><ellipse cx="72" cy="56" rx="8" ry="11" fill="#0e2412"/>
+      <circle cx="49" cy="59" r="3.2" fill="#e0ff6a" stroke="none"/><circle cx="71" cy="59" r="3.2" fill="#e0ff6a" stroke="none"/>
+      <ellipse cx="60" cy="82" rx="9" ry="6.5" fill="#0e2412"/>
+    </g></svg>`; break;
+    case 'spider': {
+      const legs = ['M48 64 Q28 44 12 52','M46 72 Q24 66 8 82','M48 80 Q30 90 18 106','M53 85 Q45 100 39 114',
+                    'M72 64 Q92 44 108 52','M74 72 Q96 66 112 82','M72 80 Q90 90 102 106','M67 85 Q75 100 81 114'];
+      s = `<svg viewBox="0 0 120 120" aria-hidden="true">
+      ${legs.map(d => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#c99412" stroke-width="3" stroke-linecap="round"/>`).join('')}
+      <g ${S}>
+      <ellipse cx="60" cy="78" rx="25" ry="21" fill="#f5bf1f"/>
+      <path d="M40 72 C50 66 70 66 80 72 M38 82 C50 76 70 76 82 82" fill="none" stroke-width="2.4" opacity=".55"/>
+      <path d="M72 60 C88 66 88 92 70 98 C80 88 80 70 72 60Z" fill="#000" opacity=".2" stroke="none"/>
+      <circle cx="60" cy="48" r="17" fill="#f5bf1f"/>
+      <circle cx="60" cy="47" r="8" fill="#fffbe0"/><circle cx="60" cy="47" r="3.5" fill="#ff9a1f" stroke="none"/>
+      <circle cx="49" cy="39" r="2.6" fill="${INK}" stroke="none"/><circle cx="71" cy="39" r="2.6" fill="${INK}" stroke="none"/>
+      <circle cx="51" cy="57" r="2.3" fill="${INK}" stroke="none"/><circle cx="69" cy="57" r="2.3" fill="${INK}" stroke="none"/>
+      <path d="M54 63 L52 69 M66 63 L68 69" fill="none"/>
+      </g></svg>`; break; }
+    case 'voidw': s = `<svg viewBox="0 0 120 120" aria-hidden="true"><g ${S}>
+      <path d="M60 6 C86 6 98 30 98 60 L106 114 L84 106 L72 114 L60 106 L48 114 L36 106 L14 114 L22 60 C22 30 34 6 60 6Z" fill="#4b2d86"/>
+      <path d="M60 6 C86 6 98 30 98 60 L106 114 L84 106 L72 114 L60 106 L48 114 L36 106 L14 114 L22 60 C22 30 34 6 60 6Z" fill="url(#ht)" opacity=".2" stroke="none"/>
+      <path d="M84 16 C98 34 98 70 104 110 L92 104 C90 70 92 40 84 16Z" fill="#000" opacity=".25" stroke="none"/>
+      <ellipse cx="60" cy="50" rx="22" ry="26" fill="#0b0614"/>
+      <path d="M48 52 a12 12 0 1 1 24 0 a9 9 0 1 1 -18 0 a6 6 0 1 1 12 0" fill="none" stroke="#7a4fd0" stroke-width="2" opacity=".85"/>
+      <ellipse cx="51" cy="44" rx="4.5" ry="2.4" fill="#e2d4ff" stroke="none"/><ellipse cx="69" cy="44" rx="4.5" ry="2.4" fill="#e2d4ff" stroke="none"/>
+      <path d="M36 84 C48 90 72 90 84 84" fill="none"/>
+      <circle cx="60" cy="88" r="5" fill="#ffcf3a"/>
+    </g></svg>`; break;
+    case 'boss': s = `<svg viewBox="0 0 160 150" aria-hidden="true"><g ${S}>
+      ${gearTeeth(28, 38, 20, 9, '#8d6a2a')}<circle cx="28" cy="38" r="20" fill="#c8963a"/><circle cx="28" cy="38" r="7" fill="#2a1530"/>
+      ${gearTeeth(134, 44, 18, 8, '#8d6a2a')}<circle cx="134" cy="44" r="18" fill="#c8963a"/><circle cx="134" cy="44" r="6" fill="#2a1530"/>
+      <path d="M44 34 L52 10 L64 26 L80 4 L96 26 L108 10 L116 34Z" fill="#ffcf3a"/>
+      <circle cx="80" cy="80" r="58" fill="#4b2d86"/>
+      <circle cx="80" cy="80" r="58" fill="url(#ht)" opacity=".2" stroke="none"/>
+      <circle cx="80" cy="80" r="47" fill="#efe2c2"/>
+      ${Array.from({length:12}, (_, i) => `<line x1="80" y1="${i % 3 ? 37 : 35}" x2="80" y2="${i % 3 ? 42 : 46}" stroke-width="${i % 3 ? 2 : 3.5}" transform="rotate(${i * 30} 80 80)"/>`).join('')}
+      <path d="M80 80 L80 48" stroke-width="5"/><path d="M80 80 L106 94" stroke-width="5"/>
+      <path d="M50 64 L72 70 L52 77Z" fill="#ff3b3b"/><path d="M110 64 L88 70 L108 77Z" fill="#ff3b3b"/>
+      <circle cx="80" cy="80" r="6" fill="#ffcf3a"/>
+      <rect x="58" y="100" width="44" height="13" rx="3" fill="#2a1530"/>
+      <path d="M67 100 L67 113 M76 100 L76 113 M85 100 L85 113 M94 100 L94 113" fill="none" stroke-width="2"/>
+      <path d="M112 36 C140 56 140 104 110 126 C128 100 130 62 112 36Z" fill="#000" opacity=".22" stroke="none"/>
+    </g></svg>`; break;
+  }
+  ESVG[t] = s;
+  return s;
+}
+
+const NAT = {drone:'r', shard:'b', vine:'g', spider:'y', voidw:'k', boss:'k'};
+const RECOL = {drone:[['#e8432e','base'],['#8e2a1c','dark']], shard:[['#2f86ea','base'],['#8cc6ff','light']], vine:[['#33b04a','base'],['#8ee06a','light']],
+  spider:[['#f5bf1f','base'],['#c99412','dark']], voidw:[['#4b2d86','base']], boss:[['#4b2d86','base']]};
+const ESV2 = {};
+function enemySvg(t, col) {
+  col = col || NAT[t]; const key = t + col; if (ESV2[key]) return ESV2[key];
+  let out = baseEnemySvg(t);
+  if (col !== NAT[t]) RECOL[t].forEach(([hex, k]) => { out = out.split(hex).join(GEMC[col][k]); });
+  return ESV2[key] = out;
+}
+
+/* ---------- Kugeln (Canvas) ---------- */
+function bodyPath(col, c, r) {
+  const p = new Path2D();
+  const poly = pts => { p.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) p.lineTo(pts[i][0], pts[i][1]); p.closePath(); };
+  switch (col) {
+    case 'r': p.arc(c, c, r, 0, Math.PI * 2); break;
+    case 'b': poly([[c - r * .98, c - r * .28], [c - r * .55, c - r * .88], [c + r * .55, c - r * .88], [c + r * .98, c - r * .28], [c, c + r * 1.02]]); break;
+    case 'g': { const pts = []; for (let i = 0; i < 6; i++) { const a = (-90 + 60 * i) * Math.PI / 180; pts.push([c + Math.cos(a) * r * 1.06, c + Math.sin(a) * r * 1.06]); } poly(pts); break; }
+    case 'y': { const pts = []; for (let i = 0; i < 10; i++) { const a = (-90 + 36 * i) * Math.PI / 180, rr = i % 2 ? r * .62 : r * 1.14; pts.push([c + Math.cos(a) * rr, c + Math.sin(a) * rr + r * .06]); } poly(pts); break; }
+    case 'k': { const s = r * .9, k = r * .38; p.moveTo(c - s + k, c - s); p.arcTo(c + s, c - s, c + s, c + s, k); p.arcTo(c + s, c + s, c - s, c + s, k); p.arcTo(c - s, c + s, c - s, c - s, k); p.arcTo(c - s, c - s, c + s, c - s, k); p.closePath(); break; }
+    case 'p': p.moveTo(c, c + r * .95); p.bezierCurveTo(c - r * 1.45, c + r * .05, c - r * .95, c - r * 1.1, c, c - r * .42); p.bezierCurveTo(c + r * .95, c - r * 1.1, c + r * 1.45, c + r * .05, c, c + r * .95); p.closePath(); break;
+    case 's': poly([[c - r * .9, c - r * .2], [c - r * .5, c - r * .85], [c + r * .2, c - r * .95], [c + r * .85, c - r * .5], [c + r * .95, c + r * .25], [c + r * .45, c + r * .9], [c - r * .35, c + r * .92], [c - r * .95, c + r * .45]]); break;
+  }
+  return p;
+}
+function drawSymbol(x, col, c, r, C, S) {
+  x.lineJoin = 'round'; x.lineCap = 'round'; x.strokeStyle = INK; x.lineWidth = S * .03;
+  switch (col) {
+    case 'r': {
+      const f = new Path2D();
+      f.moveTo(c, c - r * .62); f.bezierCurveTo(c + r * .15, c - r * .25, c + r * .52, c - r * .12, c + r * .44, c + r * .25);
+      f.bezierCurveTo(c + r * .36, c + r * .58, c - r * .36, c + r * .58, c - r * .44, c + r * .25);
+      f.bezierCurveTo(c - r * .5, c, c - r * .26, c - r * .16, c - r * .18, c - r * .36);
+      f.bezierCurveTo(c - r * .04, c - r * .14, c, c - r * .36, c, c - r * .62); f.closePath();
+      x.fillStyle = C.sym; x.fill(f); x.stroke(f);
+      const g = new Path2D(); g.moveTo(c, c - r * .05); g.bezierCurveTo(c + r * .26, c + r * .14, c + r * .2, c + r * .42, c, c + r * .42); g.bezierCurveTo(c - r * .2, c + r * .42, c - r * .26, c + r * .14, c, c - r * .05); g.closePath();
+      x.fillStyle = '#ff8a1f'; x.fill(g); break; }
+    case 'b':
+      x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = S * .022; x.beginPath();
+      x.moveTo(c - r * .98, c - r * .28); x.lineTo(c + r * .98, c - r * .28);
+      x.moveTo(c - r * .55, c - r * .88); x.lineTo(c - r * .3, c - r * .28); x.lineTo(c, c + r * 1.02);
+      x.moveTo(c + r * .55, c - r * .88); x.lineTo(c + r * .3, c - r * .28); x.lineTo(c, c + r * 1.02);
+      x.moveTo(c - r * .3, c - r * .28); x.lineTo(c, c - r * .88); x.lineTo(c + r * .3, c - r * .28); x.stroke();
+      x.fillStyle = '#fff'; x.beginPath(); const sx = c + r * .28, sy = c + r * .2, ss = r * .2;
+      x.moveTo(sx, sy - ss); x.lineTo(sx + ss * .3, sy - ss * .3); x.lineTo(sx + ss, sy); x.lineTo(sx + ss * .3, sy + ss * .3); x.lineTo(sx, sy + ss); x.lineTo(sx - ss * .3, sy + ss * .3); x.lineTo(sx - ss, sy); x.lineTo(sx - ss * .3, sy - ss * .3); x.closePath(); x.fill(); break;
+    case 'g': {
+      const l = new Path2D(); l.moveTo(c - r * .5, c + r * .45); l.quadraticCurveTo(c - r * .6, c - r * .5, c + r * .5, c - r * .5); l.quadraticCurveTo(c + r * .48, c + r * .45, c - r * .5, c + r * .45); l.closePath();
+      x.fillStyle = C.sym; x.fill(l); x.stroke(l);
+      x.beginPath(); x.moveTo(c - r * .5, c + r * .45); x.lineTo(c + r * .28, c - r * .25); x.moveTo(c - r * .12, c + r * .06); x.lineTo(c - r * .12, c - r * .22); x.moveTo(c + r * .08, c - r * .1); x.lineTo(c + r * .3, c - r * .05); x.strokeStyle = C.base; x.stroke(); break; }
+    case 'y': {
+      const b = new Path2D();
+      [[.14, -.62], [-.34, .1], [-.02, .1], [-.16, .66], [.36, -.1], [.04, -.1]].forEach((q, i) => i ? b.lineTo(c + r * q[0], c + r * q[1]) : b.moveTo(c + r * q[0], c + r * q[1])); b.closePath();
+      x.fillStyle = C.sym; x.fill(b); x.stroke(b); break; }
+    case 'k':
+      x.strokeStyle = C.sym; x.lineWidth = S * .045; x.beginPath();
+      for (let t = 0; t <= Math.PI * 3.6; t += .12) { const rr = r * .07 + t * r * .055; const px = c + Math.cos(t) * rr, py = c + Math.sin(t) * rr; t ? x.lineTo(px, py) : x.moveTo(px, py); }
+      x.stroke(); x.fillStyle = C.sym; x.beginPath(); x.arc(c, c, r * .08, 0, 7); x.fill(); break;
+    case 'p': {
+      const hp = bodyPath('p', c, r * .42); x.save(); x.translate(0, r * .02); x.fillStyle = C.sym; x.fill(hp); x.restore(); break; }
+    case 's':
+      x.strokeStyle = 'rgba(30,30,40,.7)'; x.lineWidth = S * .025; x.beginPath();
+      x.moveTo(c - r * .4, c - r * .6); x.lineTo(c - r * .1, c - r * .1); x.lineTo(c - r * .35, c + r * .3); x.moveTo(c - r * .1, c - r * .1); x.lineTo(c + r * .4, c + r * .05); x.lineTo(c + r * .5, c + r * .5); x.stroke(); break;
+  }
+}
+function makeGem(col, S) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const x = cv.getContext('2d'); const c = S / 2, r = S * .4, C = GEMC[col];
+  const body = bodyPath(col, c, r);
+  x.save(); x.translate(S * .025, S * .045); x.fillStyle = 'rgba(0,0,0,.38)'; x.fill(body); x.restore();
+  const gr = x.createRadialGradient(c - r * .35, c - r * .45, r * .08, c, c, r * 1.3);
+  gr.addColorStop(0, C.light); gr.addColorStop(.45, C.base); gr.addColorStop(1, C.dark);
+  x.fillStyle = gr; x.fill(body);
+  x.save(); x.clip(body);
+  x.fillStyle = C.dark; x.globalAlpha = .32; const sp = S * .075;
+  for (let yy = 0, row = 0; yy < S; yy += sp, row++) for (let xx = (row % 2) * sp / 2; xx < S; xx += sp) {
+    const t = ((xx - c) + (yy - c)) / (2 * r) + .15; if (t <= 0) continue;
+    x.beginPath(); x.arc(xx, yy, Math.min(sp * .42, sp * .5 * t), 0, 6.283); x.fill();
+  }
+  x.globalAlpha = 1;
+  drawSymbol(x, col, c, r, C, S);
+  x.fillStyle = 'rgba(255,255,255,.6)'; x.beginPath(); x.ellipse(c - r * .34, c - r * .5, r * .32, r * .15, -.55, 0, 6.283); x.fill();
+  x.restore();
+  x.lineWidth = S * .055; x.lineJoin = 'round'; x.strokeStyle = INK; x.stroke(body);
+  return cv;
+}
+const GEMURL = {};
+function gemUrl(col) { if (!GEMURL[col]) GEMURL[col] = makeGem(col, 64).toDataURL(); return GEMURL[col]; }
+
+/* ---------- Schauplätze ---------- */
+function sceneSvg(i) {
+  const D = '#160f30';
+  const head = '<svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMax slice" aria-hidden="true">';
+  switch (i) {
+    case 0: {
+      let ribs = ''; for (let x = 0; x <= 400; x += 50) ribs += `<line x1="${x}" y1="0" x2="${x}" y2="200" stroke="${D}" stroke-width="4" opacity=".35"/>`;
+      return head + `<circle cx="300" cy="80" r="70" fill="#ffd27a" opacity=".25"/><circle cx="300" cy="80" r="34" fill="#ffe2a0" opacity=".35"/>
+        ${ribs}<g fill="none" stroke="${D}" opacity=".6"><path d="M-30 210 Q200 -60 430 210" stroke-width="12"/><path d="M30 210 Q200 10 370 210" stroke-width="6"/></g>
+        <line x1="200" y1="0" x2="200" y2="46" stroke="${D}" stroke-width="3"/>
+        <g transform="translate(200 70)"><circle r="24" fill="#f5e6c0" stroke="${D}" stroke-width="5"/><path d="M0 0 L0 -15 M0 0 L11 5" stroke="${D}" stroke-width="3" stroke-linecap="round"/></g>
+        <g fill="${D}"><rect x="56" y="118" width="7" height="90"/><rect x="337" y="118" width="7" height="90"/></g>
+        <circle cx="60" cy="114" r="18" fill="#ffe9a8" opacity=".35"/><circle cx="60" cy="114" r="8" fill="#fff3c4"/>
+        <circle cx="340" cy="114" r="18" fill="#ffe9a8" opacity=".35"/><circle cx="340" cy="114" r="8" fill="#fff3c4"/>
+        <rect x="0" y="206" width="400" height="60" fill="${D}" opacity=".8"/><rect x="0" y="202" width="400" height="6" fill="#ffcf3a" opacity=".7"/>
+        <g fill="#ffcf3a" opacity=".5">${[20,80,140,200,260,320,380].map(x => `<rect x="${x}" y="230" width="26" height="4"/>`).join('')}</g></svg>`;
+    }
+    case 1: {
+      let panes = ''; for (let x = 20; x <= 380; x += 40) panes += `<line x1="${x}" y1="${20 + Math.abs(200 - x) * .35}" x2="${x}" y2="205" stroke="#d8ffe8" stroke-width="2" opacity=".3"/>`;
+      for (let y = 60; y < 205; y += 36) panes += `<line x1="0" y1="${y}" x2="400" y2="${y}" stroke="#d8ffe8" stroke-width="2" opacity=".18"/>`;
+      return head + `<path d="M-10 210 L-10 120 Q200 -40 410 120 L410 210Z" fill="#c8ffe0" opacity=".1"/>${panes}
+        <path d="M-10 120 Q200 -40 410 120" fill="none" stroke="${D}" stroke-width="10" opacity=".55"/>
+        <g fill="none" stroke="#1f5a2e" stroke-width="5" stroke-linecap="round" opacity=".85">
+          <path d="M70 40 C60 80 90 100 70 150"/><path d="M150 18 C160 60 130 90 150 120"/><path d="M260 18 C250 70 280 90 262 140"/><path d="M340 50 C350 90 320 110 338 160"/></g>
+        <g fill="#3fae4f" opacity=".9">${[[70,150],[150,120],[262,140],[338,160],[66,100],[156,70],[255,85],[345,110]].map(([x,y]) => `<ellipse cx="${x}" cy="${y}" rx="9" ry="5" transform="rotate(-30 ${x} ${y})"/>`).join('')}</g>
+        <rect x="0" y="206" width="400" height="60" fill="${D}" opacity=".75"/>
+        <g fill="${D}"><path d="M20 206 L30 175 L70 175 L80 206Z"/><path d="M320 206 L330 168 L378 168 L388 206Z"/></g>
+        <g fill="#2f8f3e"><circle cx="50" cy="168" r="18"/><circle cx="354" cy="158" r="22"/></g></svg>`;
+    }
+    case 2: {
+      const mirror = (x, y, w, hh) => `<ellipse cx="${x}" cy="${y}" rx="${w + 8}" ry="${hh + 8}" fill="#c99a2e" stroke="${D}" stroke-width="4"/><ellipse cx="${x}" cy="${y}" rx="${w}" ry="${hh}" fill="#bfe1ff" opacity=".55" stroke="${D}" stroke-width="3"/><path d="M${x - w * .5} ${y - hh * .4} L${x - w * .1} ${y - hh * .7}" stroke="#fff" stroke-width="4" opacity=".7" stroke-linecap="round"/>`;
+      let floor = ''; for (let i = 0; i < 10; i++) floor += `<path d="M${200 + (i - 5) * 30} 206 L${200 + (i - 5) * 90} 270" stroke="#ffcf3a" stroke-width="2" opacity=".25"/>`;
+      return head + `<rect width="400" height="206" fill="#fff" opacity=".04"/>${mirror(70, 105, 34, 62)}${mirror(200, 92, 42, 74)}${mirror(330, 105, 34, 62)}
+        <rect x="0" y="206" width="400" height="60" fill="${D}" opacity=".7"/>${floor}<rect x="0" y="203" width="400" height="5" fill="#ffcf3a" opacity=".6"/></svg>`;
+    }
+    case 3: {
+      const bld = [[0,120,50],[46,90,40],[82,140,36],[300,100,44],[340,70,30],[366,130,40]];
+      return head + `<circle cx="80" cy="60" r="26" fill="#e8e0ff" opacity=".5"/>
+        <g fill="${D}" opacity=".9">${bld.map(([x, y, w]) => `<rect x="${x}" y="${y}" width="${w}" height="${210 - y}"/>`).join('')}<rect x="168" y="40" width="64" height="170"/><path d="M160 40 L200 6 L240 40Z"/></g>
+        <circle cx="200" cy="78" r="20" fill="#d9ccff" stroke="${D}" stroke-width="4"/><path d="M200 78 L200 64 M200 78 L192 86" stroke="${D}" stroke-width="3" stroke-linecap="round"/>
+        <g fill="#ffcf3a" opacity=".55">${[[58,110],[60,130],[94,152],[312,120],[312,142],[352,90],[378,150]].map(([x, y]) => `<rect x="${x}" y="${y}" width="7" height="9"/>`).join('')}</g>
+        <ellipse cx="100" cy="200" rx="160" ry="22" fill="#a88be6" opacity=".18"/><ellipse cx="320" cy="210" rx="150" ry="20" fill="#a88be6" opacity=".15"/>
+        <rect x="0" y="210" width="400" height="60" fill="${D}" opacity=".8"/></svg>`;
+    }
+    default: {
+      return head + `<circle cx="200" cy="120" r="80" fill="#ff8a3d" opacity=".25"/>
+        <g class="spin-slow">${gearTeeth(60, 70, 58, 14, '#3a1630')}<circle cx="60" cy="70" r="58" fill="#3a1630"/><circle cx="60" cy="70" r="18" fill="#6b2a3c"/></g>
+        <g class="spin-rev">${gearTeeth(350, 60, 46, 12, '#3a1630')}<circle cx="350" cy="60" r="46" fill="#3a1630"/><circle cx="350" cy="60" r="14" fill="#6b2a3c"/></g>
+        <g class="spin-rev">${gearTeeth(330, 190, 40, 10, '#2a0f24')}<circle cx="330" cy="190" r="40" fill="#2a0f24"/></g>
+        <g fill="none" stroke="#2a0f24" stroke-width="12" opacity=".8"><path d="M0 160 L120 160 L150 130"/><path d="M400 130 L280 130"/></g>
+        <rect x="0" y="210" width="400" height="60" fill="${D}" opacity=".85"/><rect x="0" y="206" width="400" height="5" fill="#ff8a3d" opacity=".6"/></svg>`;
+    }
+  }
+}
+function motes(n) { let s = '<div class="motes">'; for (let i = 0; i < n; i++) s += `<i style="left:${Math.random() * 100}%;animation-duration:${6 + Math.random() * 8}s;animation-delay:${-Math.random() * 12}s;transform:scale(${.5 + Math.random()})"></i>`; return s + '</div>'; }
+
+/* ---------- Klang ---------- */
+const SND = (() => {
+  let ac = null, on = true;
+  try { on = localStorage.getItem('zw-sound') !== '0'; } catch (e) {}
+  function ac0() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } } if (ac.state === 'suspended') ac.resume(); return ac; }
+  function tone(f, d, type, v, f2, delay) {
+    if (!on) return; const a = ac0(); if (!a) return; const t = a.currentTime + (delay || 0);
+    const o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine';
+    o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v || .06, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .03);
+  }
+  function noise(d, v, hp, delay) {
+    if (!on) return; const a = ac0(); if (!a) return; const t = a.currentTime + (delay || 0);
+    const b = a.createBuffer(1, Math.floor(a.sampleRate * d), a.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+    const src = a.createBufferSource(); src.buffer = b; const fl = a.createBiquadFilter(); fl.type = 'highpass'; fl.frequency.value = hp; const g = a.createGain(); g.gain.value = v;
+    src.connect(fl); fl.connect(g); g.connect(a.destination); src.start(t);
+  }
+  return {
+    unlock() { if (on) ac0(); },
+    get on() { return on; },
+    toggle() { on = !on; try { localStorage.setItem('zw-sound', on ? '1' : '0'); } catch (e) {} },
+    pick() { tone(520, .07, 'triangle', .06, 820); },
+    swap(n) { tone(280 + Math.min(n, 30) * 16, .05, 'triangle', .035); },
+    combo(n) { const f = 392 * Math.pow(2, Math.min(n - 1, 14) / 6); tone(f, .16, 'square', .04); tone(f * 1.5, .22, 'sine', .05, 0, .03); },
+    hit(strong) { noise(.12, strong ? .22 : .13, 600); tone(strong ? 150 : 190, .16, 'sawtooth', .06, 60); },
+    heal() { [660, 880, 1175].forEach((f, i) => tone(f, .2, 'sine', .05, 0, i * .07)); },
+    power() { tone(220, .55, 'sawtooth', .05, 880); noise(.45, .07, 2000, .12); },
+    enemy() { tone(120, .35, 'sawtooth', .09, 45); noise(.25, .16, 300); },
+    debuff() { tone(520, .32, 'square', .035, 170); },
+    tick() { tone(1250, .03, 'square', .025); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .32, 'triangle', .07, 0, i * .12)); },
+    lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, .36, 'triangle', .06, 0, i * .16)); }
+  };
+})();
+document.addEventListener('pointerdown', () => SND.unlock(), {passive:true});
+
+/* ---------- Spielstand ---------- */
+const KEY = 'zeitwaechter-app';
+const START = ['ilka','rook','mila','bolt','nox'];
+function defSave() { const roster = {}; START.forEach(id => roster[id] = {lvl:1, xp:0}); return {cleared:Array(MAXN).fill(false), roster, team:['rook','mila','bolt','nox',null]}; }
+function loadSave() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.roster && Array.isArray(s.team) && s.roster.ilka) { while (s.cleared.length < MAXN) s.cleared.push(false); return s; } } catch (e) {}
+  return defSave();
+}
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
+let save = loadSave();
+const lvOf = id => save.roster[id] ? save.roster[id].lvl : 1;
+const lvMult = id => 1 + .09 * (lvOf(id) - 1);
+const MS = [
+  {lv:5, pw:.2}, {lv:10, sec:1}, {lv:15, hp:.1}, {lv:20, cd:1}, {lv:25, secp:.25}, {lv:30, atk:.1}, {lv:40, pw:.2}, {lv:50, hp:.1, heal:.15, cd:1},
+  {lv:75, atk:.1, heal:.1}, {lv:100, hp:.15, atk:.1}, {lv:125, pw:.3}, {lv:150, atk:.15}, {lv:200, hp:.2, atk:.2, heal:.2}, {lv:250, pw:.4, cd:1}];
+function statAt(id, k, L) {
+  let v = CHARS[id][k] * (1 + .09 * (L - 1));
+  MS.forEach(m => { if (L >= m.lv && m[k]) v *= 1 + m[k]; });
+  return Math.round(v);
+}
+const stat = (id, k) => statAt(id, k, lvOf(id));
+const xpNeed = l => 120 + 55 * l + 2 * l * l;
+function msText(m, id) {
+  const lead = id === 'ilka', out = [], pc = x => Math.round(x * 100) + ' %';
+  if (m.sec) out.push(`Zweitfarbe ${GEMC[CHARS[id].sec].name} aktiv (50 % ATK)`);
+  if (m.secp) out.push('Zweitfarbe greift mit 75 % ATK an');
+  if (m.pw) out.push(`Fähigkeit +${pc(m.pw)} stärker`);
+  if (m.hp) out.push(`+${pc(m.hp)} HP`);
+  if (m.atk) out.push(`+${pc(m.atk)} ATK`);
+  if (m.heal) out.push(`+${pc(m.heal)} Heilung`);
+  if (m.cd) out.push(lead ? 'Fähigkeit braucht 2 Combos weniger' : 'Fähigkeit lädt 1 Runde schneller');
+  return out.join(', ');
+}
+const sumMs = (id, k) => { const L = lvOf(id); return MS.reduce((a, m) => a + (L >= m.lv && m[k] ? m[k] : 0), 0); };
+const pwrMult = id => 1 + sumMs(id, 'pw');
+const cdCut = id => sumMs(id, 'cd');
+const cdOf = id => Math.max(2, CHARS[id].power.cd - cdCut(id));
+const thrOf = () => [Math.max(4, CHARS.ilka.power.t1 - 2 * cdCut('ilka')), Math.max(8, CHARS.ilka.power.t2 - 2 * cdCut('ilka'))];
+const secPart = id => .5 + sumMs(id, 'secp');
+const recLevel = n => Math.min(LVCAP, Math.max(1, Math.round(n <= 100 ? 2 + n * .42 : 44 + (n - 100) * .17)));
+const secOn = id => !!CHARS[id].sec && save.roster[id] && save.roster[id].lvl >= SEC_LV;
+function duo(id, extra) {
+  const ch = CHARS[id], c2 = secOn(id) ? PBG[ch.sec] : '#4a4560';
+  return `<div class="duo ${extra || ''}" style="--c1:${PBG[ch.color]};--c2:${c2}"><div class="in">${portrait(ch)}</div></div>`;
+}
+const unlocked = n => n === 0 || (n === 1 ? !!save.tutDone : save.cleared[n - 2]);
+const firstOpen = () => { for (let n = 1; n <= MAXN; n++) if (!save.cleared[n - 1]) return n; return MAXN; };
+
+/* ---------- Bildschirme ---------- */
+function show(name) {
+  ['scrMap','scrTeam','scrBattle'].forEach(id => $('#' + id).hidden = id !== name);
+  if (name === 'scrBattle') requestAnimationFrame(layout);
+}
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+
+let mapChap = Math.floor((firstOpen() - 1) / 10);
+function renderMap() {
+  $('#tutSlot').innerHTML = `<div class="tutCard"><div class="pic">${portrait(CHARS.ilka)}</div><div><b>${save.tutDone ? 'Tutorial wiederholen' : 'Starte hier: Tutorial'}</b>
+    <p>${save.tutDone ? 'Alle Grundlagen noch einmal in Ruhe.' : 'Ziehen, Schaden, Heilen, Combos, Fähigkeiten und Gegner – Schritt für Schritt.'}</p></div>
+    <button class="btn sm ${save.tutDone ? 'ghost' : ''}" id="tutGo">${save.tutDone ? 'Nochmal' : 'Los!'}</button></div>`;
+  $('#tutGo').onclick = () => startLevel(0);
+  const comp = save.team.filter(Boolean);
+  $('#peek').innerHTML = ['ilka', ...comp].map(id => `<div>${portrait(CHARS[id])}</div>`).join('');
+  const maxOpen = Math.floor((firstOpen() - 1) / 10);
+  const chDone = c => save.cleared[c * 10 + 9];
+  $('#chaps').innerHTML = `<button class="btn sm ghost" id="chPrev" ${mapChap > 0 ? '' : 'disabled'} aria-label="Vorheriges Kapitel">◀</button>
+    <div class="chapMid"><b>Kapitel ${mapChap + 1} / ${NCH}</b><small>${chDone(mapChap) ? 'abgeschlossen' : mapChap === maxOpen ? 'aktuell' : ''}</small></div>
+    <button class="btn sm ghost" id="chNext" ${mapChap < Math.min(NCH - 1, maxOpen) ? '' : 'disabled'} aria-label="Nächstes Kapitel">▶</button>
+    ${mapChap !== maxOpen ? '<button class="btn sm" id="chCur">Aktuell</button>' : ''}`;
+  $('#chPrev').onclick = () => { mapChap--; renderMap(); };
+  $('#chNext').onclick = () => { mapChap++; renderMap(); };
+  if ($('#chCur')) $('#chCur').onclick = () => { mapChap = maxOpen; renderMap(); };
+  const C = CHAPS[mapChap];
+  let cnt = 0; for (let k = 0; k < 10; k++) if (save.cleared[mapChap * 10 + k]) cnt++;
+  $('#chapName').textContent = `${mapChap + 1} · ${C.name}`;
+  $('#chapProg').textContent = `${cnt}/10 · gesamt ${save.cleared.filter(Boolean).length}/${MAXN}`;
+  const box = $('#route'), W = box.clientWidth || 340, step = 96, top = 50;
+  const pts = Array.from({length:10}, (_, k) => [W * (.5 + .3 * Math.sin(k * 1.25)), top + k * step]);
+  const H = top + 9 * step + 80;
+  box.style.height = H + 'px';
+  const cur = firstOpen();
+  let d = `M${pts[0][0]} ${pts[0][1]}`, dDone = d;
+  for (let k = 1; k < 10; k++) {
+    const [x0, y0] = pts[k - 1], [x1, y1] = pts[k];
+    const seg = ` C${x0} ${y0 + step * .55} ${x1} ${y1 - step * .55} ${x1} ${y1}`;
+    d += seg; if (save.cleared[mapChap * 10 + k - 1]) dDone += seg;
+  }
+  box.innerHTML = `<svg class="path" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <path d="${d}" fill="none" stroke="#120c22" stroke-width="14" stroke-linecap="round"/>
+    <path d="${d}" fill="none" stroke="#3a3160" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 14"/>
+    <path d="${dDone}" fill="none" stroke="#ffcf3a" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 14"/></svg>`;
+  for (let k = 0; k < 10; k++) {
+    const n = mapChap * 10 + k + 1, L = getLevel(n), op = unlocked(n), done = save.cleared[n - 1];
+    const b = document.createElement('button');
+    b.className = 'node' + (done ? ' done' : '') + (op ? '' : ' locked') + (n === cur ? ' cur' : '') + (L.boss ? ' boss' : '');
+    b.style.left = pts[k][0] + 'px'; b.style.top = pts[k][1] + 14 + 'px';
+    b.innerHTML = `<span class="orb">${done ? '✓' : L.boss ? 'BOSS' : n}</span><span class="lbl">${op ? (L.boss ? L.name : 'Level ' + n) : 'Gesperrt'}</span>`;
+    b.setAttribute('aria-label', op ? `Level ${n}: ${L.name}` : `Level ${n} gesperrt`);
+    b.onclick = () => op ? openLevel(n) : toast(n === 1 ? 'Spiele zuerst das Tutorial (oben).' : 'Schließe zuerst das vorherige Level ab.');
+    box.appendChild(b);
+  }
+}
+function openLevel(n) {
+  const L = getLevel(n), ov = $('#overlay'), done = save.cleared[n - 1];
+  const specs = []; L.waves.flat().forEach(sp => { if (!specs.some(x => x.t === sp.t && x.col === sp.col)) specs.push(sp); });
+  const rw = REWARD[n], have = rw && save.roster[rw];
+  ov.className = ''; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet">
+    <div class="scene-card" style="background:linear-gradient(180deg,${L.bg[0]},${L.bg[1]})"><div class="scene">${sceneSvg(L.scene)}</div>
+      <div class="foesRow">${L.boss ? `<div style="width:96px">${enemySvg('boss', BOSSES[L.c].col)}</div>` : specs.filter(x => x.t !== 'boss').slice(0, 4).map(x => `<div>${enemySvg(x.t, x.col)}</div>`).join('')}</div></div>
+    <h2>Level ${n} · ${L.boss ? L.name : CHAPS[L.c].name}</h2>
+    <p class="stats">${L.sub} · Gegnerstärke ×${L.hpM.toFixed(1)} · +${L.xp} XP pro Figur</p>
+    ${(() => { const comp = save.team.filter(Boolean), avg = Math.round(comp.reduce((a, id) => a + lvOf(id), 0) / comp.length), rec = recLevel(n);
+      return `<div class="rec ${avg < rec ? 'warn' : 'ok'}">Empfohlenes Team-Level: <b>${rec}</b> · dein Schnitt: <b>${avg}</b>${avg < rec ? ' · wird hart' : ''}</div>`; })()}
+    <div class="foeList">${(() => { const seen = []; L.waves.flat().forEach(sp => { if (!seen.some(x => x.t === sp.t && x.col === sp.col && x.elite === sp.elite)) seen.push(sp); });
+      return seen.map(sp => { const e = mkEnemy(sp, L), w = weakTo(e.color);
+        return `<div class="foe"><div class="f">${enemySvg(sp.t, sp.col)}</div><div><b>${e.name}</b> <img src="${gemUrl(e.color)}" alt="" style="width:14px;height:14px;vertical-align:-2px">
+          <small>HP ${e.max} · ATK ${e.atk} alle ${e.cdMax} Züge · DEF ${e.def}</small>
+          <small>${e.T.pat.map(a => ACT[a]).join(' → ')} · schwach gegen ${w.map(c => GEMC[c].name).join('/')}</small></div></div>`; }).join(''); })()}</div>
+    ${rw ? `<p class="pw">Belohnung: ${have ? `<em>${CHARS[rw].name}</em> ist schon in deiner Crew` : '<em>Neues Crewmitglied</em>'}</p>` : ''}
+    <div class="btns"><button class="btn sm ghost" id="oClose">Zurück</button><button class="btn sm ghost" id="oTeam">Team wählen</button><button class="btn" id="oGo">${done ? 'Nochmal' : 'Los!'}</button></div></div>`;
+  $('#oClose').onclick = closeOv;
+  ov.onclick = ev => { if (ev.target === ov) closeOv(); };
+  $('#oGo').onclick = () => { closeOv(); startLevel(n); };
+  $('#oTeam').onclick = () => { closeOv(); openTeam(n); };
+}
+
+function powerText(ch) {
+  const p = ch.power;
+  if (ch === CHARS.ilka) { const [t1, t2] = thrOf(); return `<em>${p.name}</em> · ${t1} Combos: ${p.d1} ${t2} Combos: ${p.d2}`; }
+  const id = Object.keys(CHARS).find(k => CHARS[k] === ch), pm = pwrMult(id);
+  return `<em>${p.name}</em> · alle ${cdOf(id)} Runden: ${p.d}${pm > 1 ? ` <span style="color:var(--good)">(Wirkung +${Math.round((pm - 1) * 100)} %)</span>` : ''}`;
+}
+let teamFor = null, teamSel = 'ilka', teamFilter = 'all';
+function openTeam(n) {
+  teamFor = n || null; teamSel = save.team.find(Boolean) || 'ilka';
+  $('#teamTitle').textContent = teamFor ? `Team für Level ${teamFor}` : 'Dein Team';
+  $('#startBar').hidden = !teamFor;
+  show('scrTeam'); renderTeamScreen(); $('#scrTeam').scrollTop = 0;
+}
+function renderTeamScreen() {
+  const slots = $('#slots');
+  slots.innerHTML = `<button class="slot lead" data-s="ilka" aria-label="Ilka Vey">${duo('ilka')}</button>` +
+    save.team.map(id => id ? `<button class="slot" data-s="${id}" aria-label="${CHARS[id].name}">${duo(id)}</button>` : `<div class="slot empty">frei</div>`).join('');
+  slots.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { teamSel = b.dataset.s; renderTeamScreen(); });
+  const comp = save.team.filter(Boolean), all = ['ilka', ...comp];
+  const cols = new Set(); all.forEach(id => { cols.add(CHARS[id].color); if (secOn(id)) cols.add(CHARS[id].sec); });
+  const lvlHint = teamFor ? (() => { const ec = [...new Set(getLevel(teamFor).waves.flat().map(x => x.col))]; const good = [...new Set(ec.flatMap(weakTo))];
+    return `<span>Gegner ${ec.map(c => `<img src="${gemUrl(c)}" alt="${GEMC[c].name}" style="width:15px;height:15px;vertical-align:-3px">`).join('')} · stark dagegen ${good.map(c => `<img src="${gemUrl(c)}" alt="${GEMC[c].name}" style="width:15px;height:15px;vertical-align:-3px">`).join('')} · empfohlen Lv ${recLevel(teamFor)}</span>`; })() : '';
+  $('#sum').innerHTML = lvlHint + `<span>Team-HP <b>${comp.reduce((s, id) => s + stat(id, 'hp'), 0)}</b></span><span>Heilung <b>${comp.reduce((s, id) => s + stat(id, 'heal'), 0)}</b></span><span>Angriffsfarben ${C5.filter(c => cols.has(c)).map(c => `<img src="${gemUrl(c)}" alt="${GEMC[c].name}" style="width:15px;height:15px;vertical-align:-3px">`).join('')}</span>`;
+  // Detail
+  const id = teamSel, ch = CHARS[id], R = save.roster[id], inT = id === 'ilka' || save.team.includes(id);
+  $('#detail').innerHTML = `${duo(id)}<div class="meta">
+    <div class="nm"><b style="font-family:var(--display);font-size:21px;font-weight:400;letter-spacing:.04em">${ch.name}</b> <span class="chip">Lv ${R.lvl}</span> <span class="chip">${ch.role}</span></div>
+    <div class="colors"><span><img src="${gemUrl(ch.color)}" alt="">Hauptfarbe ${GEMC[ch.color].name}</span>
+      <span class="${secOn(id) ? '' : 'lock'}"><img src="${gemUrl(ch.sec)}" alt="">Zweitfarbe ${GEMC[ch.sec].name}${secOn(id) ? ' (50 % ATK)' : ` · ab Lv ${SEC_LV}`}</span></div>
+    <table class="st"><tr><th></th><th>Basis</th><th>Jetzt</th><th>Lv ${R.lvl + 1}</th></tr>
+      ${['hp','atk','heal'].map(k => `<tr><td>${{hp:'HP', atk:'ATK', heal:'Heil'}[k]}</td><td>${CHARS[id][k]}</td><td><b>${stat(id, k)}</b></td><td class="up">+${statAt(id, k, R.lvl + 1) - stat(id, k)}</td></tr>`).join('')}</table>
+    <div class="xpb"><i style="width:${Math.min(100, R.xp / xpNeed(R.lvl) * 100)}%"></i><span>XP ${R.xp} / ${xpNeed(R.lvl)}</span></div>
+    <div class="pw">${powerText(ch)}</div>
+    <div class="ms">${MS.map(m => { const got = R.lvl >= m.lv, nx = !got && MS.find(x => R.lvl < x.lv) === m;
+      return `<div class="${got ? 'got' : nx ? 'next' : ''}"><b>Lv ${m.lv}</b><span>${msText(m, id)}${nx ? ` · noch ${m.lv - R.lvl} Lv` : ''}</span></div>`; }).join('')}</div>
+    ${id === 'ilka' ? '<div class="stats">Anführerin, immer dabei. Zählt nicht zu Team-HP und Heilung.</div>' : `<button class="btn sm ${inT ? 'ghost' : ''}" id="dTog" style="align-self:flex-start">${inT ? 'Aus dem Team' : 'Ins Team'}</button>`}
+  </div>`;
+  const tog = $('#dTog'); if (tog) tog.onclick = () => toggleMember(id);
+  // Filter
+  $('#filters').innerHTML = `<button data-f="all" class="${teamFilter === 'all' ? 'on' : ''}">Alle</button>` +
+    C5.map(c => `<button data-f="${c}" class="${teamFilter === c ? 'on' : ''}"><img src="${gemUrl(c)}" alt="">${GEMC[c].name}</button>`).join('');
+  $('#filters').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { teamFilter = b.dataset.f; renderTeamScreen(); });
+  const ids = Object.keys(save.roster).filter(x => teamFilter === 'all' || CHARS[x].color === teamFilter || (secOn(x) && CHARS[x].sec === teamFilter))
+    .sort((x, y) => save.roster[y].lvl - save.roster[x].lvl);
+  $('#crewTitle').textContent = `Crew · ${Object.keys(save.roster).length} von ${1 + 4 + RECRUITS.length}`;
+  $('#grid').innerHTML = ids.map(x => `<button class="tile ${x === teamSel ? 'sel' : ''}" data-g="${x}" aria-label="${CHARS[x].name}">${duo(x)}
+    ${x === 'ilka' || save.team.includes(x) ? '<span class="chk">✓</span>' : ''}<span class="lv">Lv ${save.roster[x].lvl}</span></button>`).join('');
+  $('#grid').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { teamSel = b.dataset.g; renderTeamScreen(); });
+}
+function toggleMember(id) {
+  const i = save.team.indexOf(id);
+  if (i >= 0) {
+    if (save.team.filter(Boolean).length <= 1) return toast('Mindestens ein Begleiter muss mit.');
+    save.team[i] = null;
+  } else {
+    const e = save.team.indexOf(null);
+    if (e < 0) return toast('Das Team ist voll. Tippe oben ein Mitglied an und nimm es raus.');
+    save.team[e] = id;
+  }
+  persist(); renderTeamScreen();
+}
+
+/* ---------- Kampf: Zustand ---------- */
+let B = null, grid = [], gid = 0, cell = 56, dpr = 1, gemCache = {}, drag = null;
+const canvas = $('#board'), ctx = canvas.getContext('2d'), battle = $('#scrBattle');
+
+/* ---------- Effekte (Partikel & Flugbahnen) ---------- */
+const FX = (() => {
+  const cv = $('#fx'), x = cv.getContext('2d'); let parts = [], flights = [], w = 0, h = 0, dp = 1;
+  function resize() { const r = battle.getBoundingClientRect(); dp = Math.min(2, window.devicePixelRatio || 1); w = r.width; h = r.height; cv.width = Math.round(w * dp); cv.height = Math.round(h * dp); }
+  function burst(px, py, color, n, spd) { n = n || 12; spd = spd || 4; for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = spd * (.35 + Math.random()); parts.push({x:px, y:py, vx:Math.cos(a) * v, vy:Math.sin(a) * v - 1.4, life:0, max:24 + Math.random() * 20, c:color, s:2 + Math.random() * 4, star:Math.random() < .35}); } }
+  function ring(px, py, color, size) { parts.push({x:px, y:py, life:0, max:22, c:color, ring:true, s:size || 8}); }
+  function fly(x0, y0, x1, y1, color, dur, size) { return new Promise(res => flights.push({x0, y0, x1, y1, c:color, t0:performance.now(), dur:dur || 320, res, size:size || 7, trail:[], arc:(Math.random() * .7 - .35)})); }
+  function star(px, py, r) { x.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .35 : r; x.lineTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr); } x.closePath(); x.fill(); }
+  function step(now, k) {
+    x.setTransform(dp, 0, 0, dp, 0, 0); x.clearRect(0, 0, w, h);
+    if (!parts.length && !flights.length) return;
+    x.globalCompositeOperation = 'lighter';
+    parts = parts.filter(p => {
+      p.life += k; if (p.life > p.max) return false; const t = p.life / p.max;
+      if (p.ring) { x.strokeStyle = p.c; x.globalAlpha = 1 - t; x.lineWidth = 5 * (1 - t) + 1; x.beginPath(); x.arc(p.x, p.y, p.s + t * 42, 0, 6.283); x.stroke(); return true; }
+      p.x += p.vx * k; p.y += p.vy * k; p.vy += .16 * k; p.vx *= .98;
+      x.globalAlpha = 1 - t; x.fillStyle = p.c;
+      if (p.star) star(p.x, p.y, p.s * 1.7 * (1 - t * .5)); else { x.beginPath(); x.arc(p.x, p.y, p.s * (1 - t * .6), 0, 6.283); x.fill(); }
+      return true;
+    });
+    flights = flights.filter(f => {
+      const t = Math.min(1, (now - f.t0) / f.dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const mx = (f.x0 + f.x1) / 2 + (f.y1 - f.y0) * f.arc, my = (f.y0 + f.y1) / 2 - Math.abs(f.x1 - f.x0) * f.arc * .4 - 40;
+      const px = (1 - e) * (1 - e) * f.x0 + 2 * (1 - e) * e * mx + e * e * f.x1, py = (1 - e) * (1 - e) * f.y0 + 2 * (1 - e) * e * my + e * e * f.y1;
+      f.trail.push([px, py]); if (f.trail.length > 12) f.trail.shift();
+      f.trail.forEach((q, i) => { x.globalAlpha = (i + 1) / f.trail.length * .65; x.fillStyle = f.c; x.beginPath(); x.arc(q[0], q[1], f.size * (i + 1) / f.trail.length, 0, 6.283); x.fill(); });
+      x.globalAlpha = 1; x.fillStyle = '#fff'; x.beginPath(); x.arc(px, py, f.size * .55, 0, 6.283); x.fill();
+      if (t >= 1) { f.res(); return false; } return true;
+    });
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+  }
+  return {resize, burst, ring, fly, step};
+})();
+function relCenter(el) { const br = battle.getBoundingClientRect(), r = el.getBoundingClientRect(); return [r.left - br.left + r.width / 2, r.top - br.top + r.height / 2]; }
+function cellCenter(r, c) { const br = battle.getBoundingClientRect(), cr = canvas.getBoundingClientRect(), sc = cr.width / (cell * COLS); return [cr.left - br.left + 3 + (c + .5) * cell * sc, cr.top - br.top + 3 + (r + .5) * cell * sc]; }
+const figOf = e => { const el = enemyEl(e); return el ? el.querySelector('.efig') : null; };
+function flashHurt() { const f = $('#flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
+
+function startLevel(n) {
+  const L = getLevel(n), first = n > 0 && !save.cleared[n - 1];
+  const comp = n === 0 ? ['rook','mila','bolt','nox'] : save.team.filter(Boolean);
+  B = {li:n, L, wave:0, enemies:[], target:0, busy:true, active:false, extra:0, poison:null, leaderCharge:0, uid:0};
+  B.allies = ['ilka', ...comp].map(id => ({id, ch:CHARS[id], color:CHARS[id].color, sec:secOn(id) ? CHARS[id].sec : null, secPart:secPart(id), cd:cdOf(id), atk:stat(id, 'atk'), leader:id === 'ilka', charge:0}));
+  [B.t1, B.t2] = thrOf();
+  B.teamMax = comp.reduce((s, id) => s + stat(id, 'hp'), 0); B.teamHp = B.teamMax;
+  B.heal = comp.reduce((s, id) => s + stat(id, 'heal'), 0);
+  $('#stage').style.background = `linear-gradient(180deg,${L.bg[0]},${L.bg[1]})`;
+  $('#stage').innerHTML = `<div class="scene">${sceneSvg(L.scene)}</div>${motes(12)}`;
+  $('#bTitle').textContent = n === 0 ? 'Tutorial' : `Level ${n} · ${L.boss ? L.name : CHAPS[L.c].name}`;
+  B.tut = n === 0; B.tutFree = false; $('#coach').hidden = true;
+  show('scrBattle');
+  newBoard(); spawnWave(); renderTeam();
+  const lines = first && L.k === 0 ? STORY[L.c].intro : null;
+  if (n === 0) { requestAnimationFrame(() => { layout(); B.active = true; TUT.start(); }); return; }
+  requestAnimationFrame(() => { layout(); runDialogue(lines, L.c).then(() => { banner('Welle 1'); B.busy = false; B.active = true; }); });
+}
+function mkEnemy(sp, LL) {
+  const L = LL || B.L;
+  const T = sp.tut ? {name:'Übungsdrohne', color:'r', hp:9000, def:0, atk:60, cd:2, pat:['atk','lock']} : sp.t === 'boss' ? {name:BOSSES[L.c].name, color:BOSSES[L.c].col, hp:2600, def:50, atk:170, cd:2, pat:BOSSES[L.c].pat, shieldN:3, boss:true} : ETYPES[sp.t];
+  const el = sp.elite ? 1 : 0;
+  const hp = Math.round(T.hp * L.hpM * (el ? 1.8 : 1));
+  return {uid:B ? ++B.uid : 0, type:sp.t, svg:sp.t, T, elite:!!el, name:(el ? 'Elite-' : '') + T.name, color:sp.col, hp, max:hp,
+    def:Math.round(T.def * L.defM + (el ? 20 : 0)), atk:Math.round(T.atk * L.atkM * (el ? 1.3 : 1)), cdMax:T.cd, cd:T.cd, pi:0, stun:0, poison:null, shield:null, dead:false};
+}
+function spawnWave() {
+  B.enemies = B.L.waves[B.wave].map(sp => mkEnemy(sp)); B.target = 0;
+  $('#bWave').textContent = `Welle ${B.wave + 1} von ${B.L.waves.length}`;
+  renderEnemies();
+}
+const alive = () => B.enemies.filter(e => !e.dead);
+function curTarget() { let t = B.enemies[B.target]; if (!t || t.dead) { t = alive()[0]; B.target = B.enemies.indexOf(t); } return t; }
+const enemyEl = e => document.querySelector(`[data-eid="${e.uid}"]`);
+
+function renderEnemies() {
+  const st = $('#stage'); st.querySelectorAll('.enemy').forEach(n => n.remove());
+  B.enemies.forEach((e, i) => {
+    const d = document.createElement('div');
+    d.className = 'enemy' + (e.T.boss ? ' boss' : '') + (e.elite ? ' elite' : ''); d.dataset.eid = e.uid;
+    d.innerHTML = `<div class="ecd"></div><div class="estat"></div><div class="efig">${enemySvg(e.svg, e.color)}</div>
+      <div class="ename ${e.elite ? 'el' : ''}"><img src="${gemUrl(e.color)}" alt="${GEMC[e.color].name}">${e.name}</div><div class="ehp"><i></i></div>`;
+    d.onclick = () => { if (e.dead) return; if (B.target === i || alive().length === 1) return enemyInfo(e); B.target = i; refreshEnemies(); refreshTeam(); if (B.tut) TUT.onTarget(i); };
+    st.appendChild(d);
+  });
+  refreshEnemies();
+}
+function refreshEnemies() {
+  if (!B) return;
+  const tg = alive().length ? curTarget() : null;
+  B.enemies.forEach(e => {
+    const el = enemyEl(e); if (!el) return;
+    el.classList.toggle('dead', e.dead);
+    el.classList.toggle('tgt', e === tg && alive().length > 1);
+    el.querySelector('.ehp i').style.width = Math.max(0, e.hp / e.max * 100) + '%';
+    const cd = el.querySelector('.ecd'); cd.textContent = e.cd; cd.classList.toggle('soon', e.cd <= 1 && !e.stun);
+    let s = '';
+    if (e.shield) s += `<span class="sh">Schild ≤${e.shield.n}</span>`;
+    if (e.stun) s += `<span class="st">Betäubt ${e.stun}</span>`;
+    if (e.poison) s += `<span class="ps">Gift ${e.poison.turns}</span>`;
+    s += `<span class="enext">▶ ${ACT[e.T.pat[e.pi % e.T.pat.length]]}</span>`;
+    el.querySelector('.estat').innerHTML = s;
+  });
+}
+function renderTeam() {
+  const t = $('#team'); t.innerHTML = '';
+  B.allies.forEach(a => {
+    const d = document.createElement('button');
+    d.className = 'ally duo' + (a.leader ? ' lead' : ''); d.setAttribute('aria-label', a.ch.name);
+    d.style.setProperty('--c1', PBG[a.color]); d.style.setProperty('--c2', a.sec ? PBG[a.sec] : '#4a4560');
+    d.innerHTML = `<div class="in">${portrait(a.ch)}</div><img class="gemtag" src="${gemUrl(a.color)}" alt="">${a.sec ? `<img class="gemtag sec" src="${gemUrl(a.sec)}" alt="">` : ''}<span class="aff"></span><div class="bar"><i></i>${a.leader ? `<b style="left:${B.t1 / B.t2 * 100}%"></b>` : ''}</div>`;
+    d.onclick = () => openAlly(a);
+    a.el = d; t.appendChild(d);
+  });
+  refreshTeam();
+}
+function refreshTeam() {
+  if (!B) return;
+  const tg = alive().length ? curTarget() : null;
+  B.allies.forEach(a => {
+    if (!a.el) return;
+    const p = a.ch.power;
+    const frac = a.leader ? Math.min(1, B.leaderCharge / B.t2) : a.charge / a.cd;
+    const ready = a.leader ? B.leaderCharge >= B.t1 : a.charge >= a.cd;
+    a.el.querySelector('.bar i').style.width = frac * 100 + '%';
+    a.el.classList.toggle('ready', ready);
+    const af = a.el.querySelector('.aff');
+    const sym = c => { const m = tg && c ? aff(c, tg.color) : 1; return m > 1 ? '<span style="color:var(--good)">▲</span>' : m < 1 ? '<span style="color:var(--hot)">▼</span>' : ''; };
+    af.innerHTML = sym(a.color) + sym(a.sec); af.className = 'aff';
+  });
+  $('#hp i').style.width = Math.max(0, B.teamHp / B.teamMax * 100) + '%';
+  $('#hp').classList.toggle('poison', !!B.poison);
+  $('#hpTxt').textContent = `${Math.max(0, Math.round(B.teamHp))} / ${B.teamMax}` + (B.poison ? ' · vergiftet' : '');
+  const chip = $('#chip');
+  chip.hidden = !B.extra; chip.textContent = `+${B.extra} s Zugzeit`;
+}
+
+const ACT = {atk:'Angriff', poison:'Gift', lock:'Netz', stone:'Stein', shield:'Schild', heal:'Heilen'};
+const ACT_D = {atk:'Greift das Team an.', poison:'Vergiftet das Team: 4 % der max. HP pro Runde, 3 Runden.', lock:'Sperrt 4 Kugeln für 2 Züge.',
+  stone:'Verwandelt 4 Kugeln in wirkungslose Steine.', shield:'Combo-Schild für 3 Züge: Angriffe mit zu wenigen Combos heilen den Gegner.', heal:'Heilt sich um 15 % der max. HP.'};
+function weakTo(c) { return C5.filter(x => STRONG[x] === c); }
+function enemyInfo(e) {
+  const ov = $('#overlay'); ov.className = ''; ov.hidden = false;
+  const nxt = e.T.pat[e.pi % e.T.pat.length];
+  const strongVs = STRONG[e.color], weakVs = WEAK[e.color];
+  ov.innerHTML = `<div class="sheet"><div class="row"><div class="pic" style="background:var(--panel-2);display:grid;place-items:center">${enemySvg(e.svg, e.color)}</div>
+    <div style="min-width:0"><h2>${e.name}</h2><p class="stats"><img src="${gemUrl(e.color)}" alt="" style="width:15px;height:15px;vertical-align:-3px"> ${GEMC[e.color].name}${e.elite ? ' · Elite' : ''}${e.T.boss ? ' · Boss' : ''}</p></div></div>
+    <table class="st" style="max-width:none"><tr><td>HP</td><td><b>${Math.max(0, Math.round(e.hp))} / ${e.max}</b></td></tr><tr><td>Angriff</td><td><b>${e.atk}</b></td></tr>
+      <tr><td>Verteidigung</td><td><b>${e.def}</b> (pro Treffer abgezogen)</td></tr><tr><td>Handelt in</td><td><b>${e.stun ? 'betäubt' : e.cd + (e.cd === 1 ? ' Zug' : ' Zügen')}</b>, alle ${e.cdMax} Züge</td></tr></table>
+    <p class="pw"><em>Nächste Aktion: ${ACT[nxt]}.</em> ${ACT_D[nxt]}</p>
+    <p class="pw">Muster: ${e.T.pat.map(a => ACT[a]).join(' → ')}</p>
+    <p class="pw">Doppelter Schaden durch ${weakTo(e.color).map(c => `<img src="${gemUrl(c)}" alt="" style="width:15px;height:15px;vertical-align:-3px"> ${GEMC[c].name}`).join(', ')}${weakVs ? ` · halber Schaden durch <img src="${gemUrl(strongVs)}" alt="" style="width:15px;height:15px;vertical-align:-3px"> ${GEMC[strongVs].name}` : ''}</p>
+    <div class="btns"><button class="btn sm" id="eClose">Schließen</button></div></div>`;
+  $('#eClose').onclick = closeOv; ov.onclick = ev => { if (ev.target === ov) closeOv(); };
+}
+function helpSheet() {
+  const ov = $('#overlay'); ov.className = ''; ov.hidden = false;
+  const im = c => `<img src="${gemUrl(c)}" alt="${GEMC[c].name}">`;
+  ov.innerHTML = `<div class="sheet"><h2>So geht's</h2>
+    <div class="legend"><span>${im('r')} › ${im('g')} › ${im('b')} › ${im('r')}</span><span>Doppelter Schaden in Pfeilrichtung, halber zurück.</span>
+      <span>${im('y')} ⇄ ${im('k')}</span><span>Gelb und Schwarz machen sich gegenseitig doppelten Schaden.</span>
+      <span>${im('p')}</span><span>Heilt das Team (Heilwert aller Begleiter).</span><span>${im('s')}</span><span>Zählt als Combo, sonst keine Wirkung.</span></div>
+    <p class="pw"><em>Kette:</em> 3 Kugeln = 100 % ATK, jede weitere +25 %. Ab 5 Kugeln trifft der Angriff alle Gegner.</p>
+    <p class="pw"><em>Combos:</em> Jede weitere Combo im selben Zug gibt allen Angriffen und der Heilung +25 %. Zwei Dreierketten sind stärker als eine Sechserkette.</p>
+    <p class="pw"><em>Zweitfarbe:</em> ab Lv 10 greift eine Figur auch bei ihrer Zweitfarbe an (50 %, ab Lv 25 75 %).</p>
+    <p class="pw"><em>Gegner:</em> Die Zahl links oben zeigt, in wie vielen Zügen er handelt. Das Schild rechts oben zeigt seine nächste Aktion. Tippe einen Gegner zum Zielen an und noch einmal für alle Details.</p>
+    <p class="pw"><em>Fähigkeiten:</em> Tippe ein Porträt an. Ein leuchtender Rahmen heißt: bereit.</p>
+    <div class="btns"><button class="btn sm" id="hClose">Verstanden</button></div></div>`;
+  $('#hClose').onclick = closeOv; ov.onclick = ev => { if (ev.target === ov) closeOv(); };
+}
+
+/* ---------- Effekte ---------- */
+function floatAt(el, text, cls) {
+  if (!el) return;
+  const br = battle.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const d = document.createElement('div'); d.className = 'float ' + (cls || ''); d.textContent = text;
+  d.style.left = Math.min(br.width - 30, Math.max(30, r.left - br.left + r.width / 2 + (Math.random() * 24 - 12))) + 'px';
+  d.style.top = (r.top - br.top + r.height * .4) + 'px';
+  battle.appendChild(d); setTimeout(() => d.remove(), 1350);
+}
+function banner(text, cls) {
+  const d = document.createElement('div'); d.className = 'banner ' + (cls || ''); d.textContent = text;
+  battle.appendChild(d); setTimeout(() => d.remove(), 1350);
+}
+function showCombo(n) { const c = $('#combo'); c.textContent = n + (n > 1 ? ' Combos!' : ' Combo!'); c.classList.remove('show'); void c.offsetWidth; c.classList.add('show'); }
+function shake() { battle.classList.remove('shake'); void battle.offsetWidth; battle.classList.add('shake'); }
+
+/* ---------- Kugelfeld ---------- */
+function mkGem(c, col, y) { return {id:++gid, c, boost:0, lock:0, x:col, y, vy:0, clearT:0, pop:0}; }
+const randColor = () => COLORS[Math.random() * 6 | 0];
+function newBoard() {
+  grid = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) {
+      let col;
+      do { col = randColor(); } while ((c >= 2 && row[c - 1].c === col && row[c - 2].c === col) || (r >= 2 && grid[r - 1][c].c === col && grid[r - 2][c].c === col));
+      row.push(mkGem(col, c, r - ROWS - 1));
+    }
+    grid.push(row);
+  }
+}
+function layout() {
+  if ($('#scrBattle').hidden) return;
+  const wrapW = $('#boardWrap').clientWidth;
+  const secH = battle.clientHeight;
+  const used = $('#bHead').offsetHeight + $('#team').offsetHeight + $('#hpWrap').offsetHeight + $('#timer').offsetHeight + $('#turnInfo').offsetHeight + 34;
+  const maxH = secH - used - 96;
+  cell = Math.max(34, Math.floor(Math.min((wrapW - 6) / COLS, (maxH - 6) / ROWS)));
+  dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  canvas.width = Math.round(cell * COLS * dpr); canvas.height = Math.round(cell * ROWS * dpr);
+  canvas.style.width = cell * COLS + 'px'; canvas.style.height = cell * ROWS + 'px';
+  const S = Math.round(cell * dpr);
+  gemCache = {}; Object.keys(GEMC).forEach(k => gemCache[k] = makeGem(k, S));
+  const st = $('#stage'); st.style.setProperty('--eh', Math.max(40, st.clientHeight - 46) + 'px');
+  FX.resize();
+}
+window.addEventListener('resize', () => { layout(); if (!$('#scrMap').hidden) renderMap(); });
+
+function findGroups() {
+  const m = Array.from({length:ROWS}, () => Array(COLS).fill(false));
+  for (let r = 0; r < ROWS; r++) { let c = 0; while (c < COLS) { const g = grid[r][c]; let e = c + 1; if (g) { while (e < COLS && grid[r][e] && grid[r][e].c === g.c) e++; if (e - c >= 3) for (let k = c; k < e; k++) m[r][k] = true; } c = e; } }
+  for (let c = 0; c < COLS; c++) { let r = 0; while (r < ROWS) { const g = grid[r][c]; let e = r + 1; if (g) { while (e < ROWS && grid[e][c] && grid[e][c].c === g.c) e++; if (e - r >= 3) for (let k = r; k < e; k++) m[k][c] = true; } r = e; } }
+  const seen = Array.from({length:ROWS}, () => Array(COLS).fill(false)), groups = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (!m[r][c] || seen[r][c]) continue;
+    const col = grid[r][c].c, cells = [], st = [[r, c]]; seen[r][c] = true;
+    while (st.length) {
+      const [y, x] = st.pop(); cells.push([y, x]);
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dy, dx]) => { const ny = y + dy, nx = x + dx; if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS && !seen[ny][nx] && m[ny][nx] && grid[ny][nx].c === col) { seen[ny][nx] = true; st.push([ny, nx]); } });
+    }
+    groups.push({color:col, n:cells.length, cells, boost:cells.reduce((s, [y, x]) => s + grid[y][x].boost, 0) / 1});
+  }
+  return groups;
+}
+function collapse() {
+  for (let c = 0; c < COLS; c++) {
+    let w = ROWS - 1;
+    for (let r = ROWS - 1; r >= 0; r--) if (grid[r][c]) { if (r !== w) { grid[w][c] = grid[r][c]; grid[r][c] = null; } w--; }
+    for (let r = w; r >= 0; r--) grid[r][c] = mkGem(randColor(), c, r - (w + 1));
+  }
+}
+function settled() { for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const g = grid[r][c]; if (g && (Math.abs(g.x - c) > .02 || Math.abs(g.y - r) > .02)) return false; } return true; }
+function waitSettle() { return new Promise(res => { const t0 = performance.now(); const f = () => (settled() || performance.now() - t0 > 2000) ? res() : requestAnimationFrame(f); f(); }); }
+
+let last = performance.now();
+function frame(now) {
+  const k = Math.min(3, (now - last) / 16.7); last = now;
+  if (!$('#scrBattle').hidden && grid.length) {
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const g = grid[r][c]; if (!g) continue;
+      g.x += (c - g.x) * Math.min(1, .35 * k);
+      if (g.y < r) { g.vy += .022 * k; g.y = Math.min(r, g.y + g.vy * k); if (g.y >= r) g.vy = 0; }
+      else { g.y += (r - g.y) * Math.min(1, .35 * k); g.vy = 0; }
+    }
+    if (drag && drag.started) {
+      const left = drag.limit - (now - drag.t0);
+      $('#timer i').style.transform = `scaleX(${Math.max(0, left / drag.limit)})`;
+      $('#timer').classList.toggle('low', left < 1500);
+      const sec = Math.ceil(left / 500); if (left < 2000 && sec !== drag.tk) { drag.tk = sec; SND.tick(); }
+      if (left <= 0) endDrag();
+    }
+    draw(now);
+    FX.step(now, k);
+  }
+  requestAnimationFrame(frame);
+}
+function draw(now) {
+  const W = cell * COLS, H = cell * ROWS;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    ctx.fillStyle = (r + c) % 2 ? '#211943' : '#2a2153'; ctx.fillRect(c * cell, r * cell, cell, cell);
+  }
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const g = grid[r][c]; if (!g) continue;
+    if (drag && g === drag.gem) { drawGem(g, g.x * cell, g.y * cell, 1, .25, now); continue; }
+    let s = 1, a = 1;
+    if (g.clearT) { const t = Math.min(1, (now - g.clearT) / 220); s = 1 + .35 * t; a = 1 - t; }
+    if (g.pop) { const t = (now - g.pop) / 400; if (t < 1) s *= 1 + .25 * Math.sin(t * Math.PI); else g.pop = 0; }
+    if (a > 0) drawGem(g, g.x * cell, g.y * cell, s, a, now);
+  }
+  if (B && B.tut && TUT.hint && !drag && !B.busy) {
+    const [[r0, c0], [r1, c1]] = TUT.hint, pu = .5 + .5 * Math.sin(now / 180);
+    const x0 = (c0 + .5) * cell, y0 = (r0 + .5) * cell, x1 = (c1 + .5) * cell, y1 = (r1 + .5) * cell;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 + pu * 2; ctx.beginPath(); ctx.arc(x0, y0, cell * (.42 + pu * .08), 0, 6.283); ctx.stroke();
+    ctx.strokeStyle = '#ffcf3a'; ctx.lineWidth = cell * .1; ctx.lineCap = 'round';
+    const ang = Math.atan2(y1 - y0, x1 - x0), ex = x1 - Math.cos(ang) * cell * .15, ey = y1 - Math.sin(ang) * cell * .15;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex + Math.cos(ang) * cell * .12, ey + Math.sin(ang) * cell * .12);
+    ctx.lineTo(ex + Math.cos(ang + 2.5) * cell * .22, ey + Math.sin(ang + 2.5) * cell * .22);
+    ctx.lineTo(ex + Math.cos(ang - 2.5) * cell * .22, ey + Math.sin(ang - 2.5) * cell * .22); ctx.closePath(); ctx.fillStyle = '#ffcf3a'; ctx.fill();
+  }
+  if (drag) {
+    const tr = drag.trail, col = GEMC[drag.gem.c].light;
+    ctx.globalCompositeOperation = 'lighter';
+    tr.forEach((q, i) => { ctx.globalAlpha = (i + 1) / tr.length * .35; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(q[0], q[1] - cell * .2, cell * .32 * (i + 1) / tr.length, 0, 6.283); ctx.fill(); });
+    ctx.globalAlpha = .35; const gl = ctx.createRadialGradient(drag.px, drag.py - cell * .2, 0, drag.px, drag.py - cell * .2, cell * .8);
+    gl.addColorStop(0, col); gl.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(drag.px, drag.py - cell * .2, cell * .8, 0, 6.283); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    drawGem(drag.gem, drag.px - cell / 2, drag.py - cell * .7, 1.15, 1, now);
+  }
+}
+function drawGem(g, x, y, s, a, now) {
+  const img = gemCache[g.c]; if (!img) return;
+  const size = cell * s, off = (cell - size) / 2;
+  ctx.globalAlpha = a; ctx.drawImage(img, x + off, y + off, size, size);
+  if (g.boost) {
+    const bx = x + cell * .78, by = y + cell * .22, br = cell * .14;
+    ctx.fillStyle = '#ffcf3a'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.5, cell * .035);
+    ctx.beginPath(); ctx.arc(bx, by, br, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx - br * .55, by); ctx.lineTo(bx + br * .55, by); ctx.moveTo(bx, by - br * .55); ctx.lineTo(bx, by + br * .55); ctx.stroke();
+  }
+  if (g.lock) {
+    ctx.fillStyle = 'rgba(18,12,34,.55)'; ctx.fillRect(x + cell * .08, y + cell * .08, cell * .84, cell * .84);
+    ctx.strokeStyle = '#d9d2e8'; ctx.lineWidth = cell * .06;
+    ctx.beginPath(); ctx.arc(x + cell / 2, y + cell * .44, cell * .13, Math.PI, 0); ctx.stroke();
+    ctx.fillStyle = '#d9d2e8'; ctx.fillRect(x + cell * .32, y + cell * .44, cell * .36, cell * .26);
+    ctx.fillStyle = INK; ctx.font = `${Math.round(cell * .2)}px Bangers, Impact, sans-serif`; ctx.textAlign = 'center'; ctx.fillText(g.lock, x + cell / 2, y + cell * .65);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- Ziehen ---------- */
+function ptr(e) { const r = canvas.getBoundingClientRect(); return {x:(e.clientX - r.left) * (cell * COLS / r.width), y:(e.clientY - r.top) * (cell * ROWS / r.height)}; }
+canvas.addEventListener('pointerdown', e => {
+  if (!B || B.busy || !B.active || drag) return;
+  if (B.tut && !B.tutFree && !TUT.canDrag()) return;
+  const p = ptr(e); const r = Math.floor(p.y / cell), c = Math.floor(p.x / cell);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+  const g = grid[r][c]; if (!g) return;
+  if (g.lock) { g.pop = performance.now(); toast('Diese Kugel ist gesperrt.'); return; }
+  drag = {gem:g, r, c, px:p.x, py:p.y, started:false, t0:0, limit:(5 + B.extra) * 1000, trail:[], swaps:0, tk:0};
+  SND.pick();
+  canvas.setPointerCapture(e.pointerId); e.preventDefault();
+});
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = ptr(e); drag.px = Math.max(0, Math.min(cell * COLS, p.x)); drag.py = Math.max(0, Math.min(cell * ROWS, p.y));
+  drag.trail.push([drag.px, drag.py]); if (drag.trail.length > 10) drag.trail.shift();
+  const tc = Math.max(0, Math.min(COLS - 1, Math.floor(drag.px / cell))), tr = Math.max(0, Math.min(ROWS - 1, Math.floor(drag.py / cell)));
+  const cx = (tc + .5) * cell, cy = (tr + .5) * cell;
+  if (Math.hypot(drag.px - cx, drag.py - cy) > cell * .46) return;
+  let guard = 12;
+  while ((tr !== drag.r || tc !== drag.c) && guard--) {
+    const nr = drag.r + Math.sign(tr - drag.r), nc = drag.c + Math.sign(tc - drag.c);
+    if (grid[nr][nc].lock) break;
+    grid[drag.r][drag.c] = grid[nr][nc]; grid[nr][nc] = drag.gem;
+    drag.r = nr; drag.c = nc; SND.swap(++drag.swaps);
+    if (!drag.started) { drag.started = true; drag.t0 = performance.now(); }
+  }
+});
+canvas.addEventListener('pointerup', () => endDrag());
+canvas.addEventListener('pointercancel', () => endDrag());
+function endDrag() {
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.gem.x = d.px / cell - .5; d.gem.y = d.py / cell - .7;
+  $('#timer i').style.transform = 'scaleX(0)';
+  if (d.started) playerTurn();
+}
+
+/* ---------- Spielablauf ---------- */
+async function playerTurn() {
+  B.busy = true; B.extra = 0; refreshTeam();
+  const combos = [];
+  await waitSettle();
+  for (;;) {
+    const groups = findGroups(); if (!groups.length) break;
+    for (const g of groups) {
+      combos.push(g); const now = performance.now();
+      let sx = 0, sy = 0;
+      g.cells.forEach(([r, c]) => { grid[r][c].clearT = now; const [px, py] = cellCenter(r, c); sx += px; sy += py; FX.burst(px, py, GEMC[g.color].light, 7, 3.2); });
+      showCombo(combos.length); SND.combo(combos.length);
+      const gx = sx / g.n, gy = sy / g.n;
+      const dests = g.color === 'p' ? [$('#hp')] : B.allies.filter(a => a.color === g.color || a.sec === g.color).map(a => a.el);
+      dests.forEach(el => { const [tx, ty] = relCenter(el); FX.fly(gx, gy, tx, ty, GEMC[g.color].base, 380, 6).then(() => FX.ring(tx, ty, GEMC[g.color].light, 6)); });
+      await sleep(200);
+    }
+    await sleep(120);
+    groups.forEach(g => g.cells.forEach(([r, c]) => grid[r][c] = null));
+    collapse(); await waitSettle(); await sleep(60);
+  }
+  if (combos.length) {
+    await resolveAttacks(combos);
+    const best = Math.max(...combos.map(g => g.n));
+    $('#turnInfo').textContent = `Letzter Zug: ${combos.length} Combo${combos.length > 1 ? 's' : ''} (×${(1 + .25 * (combos.length - 1)).toFixed(2)}) · längste Kette ${best} · ${B.dmgTurn} Schaden${B.healTurn ? ` · +${B.healTurn} geheilt` : ''}`;
+  } else $('#turnInfo').textContent = 'Letzter Zug: keine Kette. Die Gegner sind trotzdem dran.';
+  if (B.tut && !B.tutFree) {
+    B.allies.forEach(a => { if (!a.leader) a.charge = Math.min(a.cd, a.charge + 1); });
+    alive().forEach(e => { if (e.hp < e.max * .3) e.hp = e.max * .3; });
+    refreshTeam(); refreshEnemies(); B.busy = false; TUT.onTurn(combos); return;
+  }
+  if (!alive().length) { await waveClear(); if (!B.active) return; }
+  else {
+    await enemyPhase();
+    if (B.teamHp <= 0) return lose();
+    if (!alive().length) { await waveClear(); if (!B.active) return; }
+  }
+  B.allies.forEach(a => { if (!a.leader) a.charge = Math.min(a.cd, a.charge + 1); });
+  refreshTeam(); refreshEnemies();
+  B.busy = false;
+}
+
+async function resolveAttacks(combos) {
+  const N = combos.length, mult = 1 + .25 * (N - 1);
+  B.dmgTurn = 0; B.healTurn = 0;
+  B.leaderCharge += N;
+  const factor = {}, big = {};
+  combos.forEach(g => {
+    if (g.color === 's') return;
+    factor[g.color] = (factor[g.color] || 0) + (1 + .25 * (g.n - 3)) * (1 + g.boost);
+    if (g.n >= 5) big[g.color] = true;
+  });
+  await sleep(250);
+  if (factor.p) {
+    const h = Math.round(B.heal * factor.p * mult);
+    B.teamHp = Math.min(B.teamMax, B.teamHp + h); B.healTurn = h; floatAt($('#hp'), '+' + h, 'heal'); SND.heal();
+    const [hx, hy] = relCenter($('#hp')); FX.burst(hx, hy, '#ffc6e2', 22, 4);
+    refreshTeam(); await sleep(300);
+  }
+  for (const a of B.allies) {
+    for (const [col, part] of [[a.color, 1], [a.sec, a.secPart]]) {
+      const f = col && factor[col]; if (!f || !alive().length) continue;
+      const str = a.atk * f * mult * part;
+      a.el.classList.remove('bounce'); void a.el.offsetWidth; a.el.classList.add('bounce');
+      const targets = big[col] ? alive() : [curTarget()];
+      await shoot(a, targets, str, N, 300, col, part < 1 ? 7 : 9);
+      refreshEnemies(); refreshTeam(); await sleep(90);
+    }
+  }
+}
+function shoot(a, targets, str, N, dur, col, size) {
+  col = col || a.color;
+  const [ax, ay] = relCenter(a.el);
+  return Promise.all(targets.map((t, i) => {
+    const fig = figOf(t); if (!fig) return Promise.resolve();
+    const [tx, ty] = relCenter(fig);
+    return sleep(i * 60).then(() => FX.fly(ax, ay, tx, ty, GEMC[col].base, dur, size || 9)).then(() => {
+      if (t.dead) return;
+      const m = aff(col, t.color);
+      hitEnemy(t, str, col, N);
+      FX.burst(tx, ty, GEMC[col].light, m > 1 ? 26 : 16, m > 1 ? 6 : 4.5); FX.ring(tx, ty, '#fff', m > 1 ? 14 : 8);
+      SND.hit(m > 1); refreshEnemies();
+    });
+  }));
+}
+function hitEnemy(t, str, color, N) {
+  if (t.dead) return;
+  const el = enemyEl(t);
+  if (t.shield && N <= t.shield.n) {
+    const h = Math.round(str * .5); t.hp = Math.min(t.max, t.hp + h); floatAt(el, 'Schild +' + h, 'heal'); return;
+  }
+  const m = aff(color, t.color);
+  const d = Math.max(1, Math.round(str * m - t.def));
+  t.hp -= d; if (B) B.dmgTurn = (B.dmgTurn || 0) + d;
+  floatAt(el, String(d), 'c-' + color + (m > 1 ? ' strong' : m < 1 ? ' weak' : ''));
+  el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+  if (t.hp <= 0) { t.hp = 0; t.dead = true; }
+}
+async function waveClear() {
+  refreshEnemies(); await sleep(650);
+  B.wave++;
+  if (B.wave >= B.L.waves.length) return win();
+  B.poison = null;
+  spawnWave(); refreshTeam();
+  const bossWave = B.L.waves[B.wave].some(sp => sp.t === 'boss');
+  banner(bossWave ? 'Endgegner!' : `Welle ${B.wave + 1}`);
+  await sleep(700);
+  if (bossWave && !save.cleared[B.li - 1]) await runDialogue(STORY[B.L.c].boss, B.L.c);
+}
+async function enemyPhase() {
+  grid.forEach(row => row.forEach(g => { if (g && g.lock > 0) g.lock--; }));
+  alive().forEach(e => { if (e.shield && --e.shield.turns <= 0) e.shield = null; });
+  refreshEnemies();
+  for (const e of alive()) {
+    if (e.poison) {
+      const d = e.poison.dmg; e.hp -= d; floatAt(enemyEl(e), String(d), 'poison');
+      if (--e.poison.turns <= 0) e.poison = null;
+      if (e.hp <= 0) { e.hp = 0; e.dead = true; refreshEnemies(); continue; }
+      refreshEnemies(); await sleep(220);
+    }
+    if (e.stun > 0) { e.stun--; continue; }
+    e.cd--;
+    if (e.cd <= 0) {
+      const act = e.T.pat[e.pi % e.T.pat.length]; e.pi++; e.cd = e.cdMax;
+      refreshEnemies(); await enemyAct(e, act);
+      if (B.teamHp <= 0) break;
+    }
+  }
+  if (B.poison && B.teamHp > 0) {
+    const d = Math.round(B.teamMax * B.poison.pct); B.teamHp -= d; floatAt($('#hp'), '-' + d, 'poison');
+    if (--B.poison.turns <= 0) B.poison = null;
+  }
+  refreshEnemies(); refreshTeam();
+}
+function randomGems(n, ok) {
+  const pool = []; grid.forEach(row => row.forEach(g => { if (g && ok(g)) pool.push(g); }));
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, n);
+}
+async function enemyAct(e, act) {
+  const el = enemyEl(e); el.classList.remove('act'); void el.offsetWidth; el.classList.add('act');
+  await sleep(200);
+  const now = performance.now();
+  switch (act) {
+    case 'atk': {
+      const fig = figOf(e); const [ex, ey] = relCenter(fig), [hx, hy] = relCenter($('#hp'));
+      await FX.fly(ex, ey, hx, hy, '#ff3b4e', 260, 11);
+      B.teamHp = Math.max(0, B.teamHp - e.atk); shake(); flashHurt(); SND.enemy();
+      FX.burst(hx, hy, '#ff7a6b', 24, 5); floatAt($('#hp'), '-' + e.atk, 'hurt'); break; }
+    case 'poison': SND.debuff(); B.poison = {pct:.04, turns:3}; floatAt(el, 'Giftsporen!', 'burst'); break;
+    case 'lock': SND.debuff(); randomGems(4, g => !g.lock).forEach(g => { g.lock = 2; g.pop = now; }); floatAt(el, 'Klebenetz!', 'burst'); break;
+    case 'stone': SND.debuff(); randomGems(4, g => g.c !== 's').forEach(g => { g.c = 's'; g.pop = now; }); floatAt(el, 'Versteinern!', 'burst'); break;
+    case 'shield': SND.debuff(); e.shield = {n:e.T.shieldN || 2, turns:3}; floatAt(el, `Combo-Schild ${e.shield.n}`, 'burst'); break;
+    case 'heal': { const h = Math.round(e.max * .15); e.hp = Math.min(e.max, e.hp + h); floatAt(el, 'Aufziehen! +' + h, 'burst'); break; }
+  }
+  refreshTeam(); refreshEnemies(); await sleep(420);
+}
+
+/* ---------- Fähigkeiten ---------- */
+function openAlly(a) {
+  if (!B) return;
+  const ch = a.ch, p = ch.power, ov = $('#overlay');
+  let status, ready;
+  if (a.leader) {
+    ready = B.leaderCharge >= B.t1;
+    status = B.leaderCharge >= B.t2 ? 'Stufe 2 bereit!' : ready ? `Stufe 1 bereit · Stufe 2 in ${B.t2 - B.leaderCharge} Combos` : `Noch ${B.t1 - B.leaderCharge} Combos bis Stufe 1`;
+  } else {
+    ready = a.charge >= a.cd;
+    status = ready ? 'Bereit!' : `Noch ${a.cd - a.charge} ${a.cd - a.charge === 1 ? 'Runde' : 'Runden'}`;
+  }
+  const can = ready && !B.busy && B.active;
+  ov.className = ''; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet" role="dialog" aria-label="${ch.name}">
+    <div class="row"><div class="pic">${portrait(ch)}</div><div style="min-width:0">
+      <h2>${p.name}</h2><p class="stats">${ch.name} · ${GEMC[ch.color].name} · ATK ${a.atk}</p></div></div>
+    <p class="stats">Lv ${lvOf(a.id)} · HP ${stat(a.id, 'hp')} · Heil ${stat(a.id, 'heal')}${a.sec ? ` · Zweitfarbe ${GEMC[a.sec].name} ${Math.round(a.secPart * 100)} %` : ` · Zweitfarbe ab Lv ${SEC_LV}`}</p>
+    <p class="pw">${a.leader ? `<em>${B.t1} Combos:</em> ${p.d1}<br><em>${B.t2} Combos:</em> ${p.d2}` : p.d + (pwrMult(a.id) > 1 ? ` <span style="color:var(--good)">(Wirkung +${Math.round((pwrMult(a.id) - 1) * 100)} %)</span>` : '')}</p>
+    <p style="color:var(--accent)">${status}</p>
+    <div class="btns"><button class="btn sm ghost" id="sClose">Schließen</button>${can ? '<button class="btn sm" id="sUse">Einsetzen</button>' : ''}</div></div>`;
+  $('#sClose').onclick = closeOv;
+  ov.onclick = ev => { if (ev.target === ov) closeOv(); };
+  if (can) $('#sUse').onclick = () => usePower(a);
+}
+function closeOv() { const ov = $('#overlay'); ov.hidden = true; ov.innerHTML = ''; ov.onclick = null; }
+async function usePower(a) {
+  closeOv();
+  if (B.busy || !B.active) return;
+  B.busy = true;
+  const p = a.ch.power, pm = pwrMult(a.id), m = lvMult(a.id) * pm;
+  let fx;
+  if (a.leader) { fx = B.leaderCharge >= B.t2 ? p.fx2 : p.fx1; B.leaderCharge = 0; } else { fx = p.fx; a.charge = 0; }
+  fx = fx.map(f => Object.assign({}, f, f.pct ? {pct:f.pct * pm} : {}));
+  banner(p.name + '!', 'power'); SND.power();
+  { const [ax, ay] = relCenter(a.el); FX.burst(ax, ay, GEMC[a.color].light, 30, 6); FX.ring(ax, ay, '#fff', 16); }
+  a.el.classList.remove('bounce'); void a.el.offsetWidth; a.el.classList.add('bounce');
+  await sleep(450);
+  const now = performance.now();
+  for (const f of fx) {
+    switch (f.type) {
+      case 'dmgAll': await shoot(a, alive(), f.amt * m, 99, 380, f.color); break;
+      case 'dmgOne': { const t = curTarget(); if (t) await shoot(a, [t], f.amt * m, 99, 380, f.color, 13); break; }
+      case 'heal': { const h = Math.round(B.teamMax * f.pct); B.teamHp = Math.min(B.teamMax, B.teamHp + h); floatAt($('#hp'), '+' + h, 'heal'); SND.heal(); const [hx, hy] = relCenter($('#hp')); FX.burst(hx, hy, '#ffc6e2', 30, 5); break; }
+      case 'boost': grid.forEach(row => row.forEach(g => { if (g.c === f.color && !g.boost) { g.boost = f.pct; g.pop = now; } })); break;
+      case 'convert': grid.forEach(row => row.forEach(g => { if (g.c === f.from) { g.c = f.to; g.pop = now; } })); break;
+      case 'time': B.extra += f.sec; break;
+      case 'purify': grid.forEach(row => row.forEach(g => { if (g.c === 's') { g.c = 'p'; g.pop = now; } if (g.lock) { g.lock = 0; g.pop = now; } })); break;
+      case 'stun': alive().forEach(e => e.stun = Math.max(e.stun, f.turns)); break;
+      case 'poison': { const t = curTarget(); if (t) t.poison = {dmg:Math.round(t.max * f.pct), turns:f.turns}; break; }
+    }
+  }
+  refreshTeam(); refreshEnemies();
+  await sleep(350);
+  if (!alive().length) { await waveClear(); if (!B.active) return; }
+  B.busy = false;
+  if (B.tut) TUT.onPower(a.id);
+}
+
+/* ---------- Tutorial ---------- */
+const TB = {
+  A:['bgykpg','gykpgb','ykpgby','kpgyyk','rrgrpb'],
+  B:['bgykpg','gykpgb','ykpgby','kpgyyk','ppbpgy'],
+  C:['gybpyk','bkgypg','ygpbkb','yprkkb','rrkggy'],
+  D:['bykpyr','kpybrp','ybpkby','rkgypk','ggbggy']
+};
+function setBoard(rows) { grid = rows.map((row, r) => [...row].map((ch, c) => mkGem(ch, c, r - ROWS - 1))); }
+const TUT = (() => {
+  let i = 0, steps = [];
+  const allyEl = id => { const a = B.allies.find(x => x.id === id); return a && a.el; };
+  const S = [
+    {w:'ilka', t:'Willkommen bei der Zeitwacht! In ein paar kurzen Schritten zeige ich dir, wie ein Kampf funktioniert.'},
+    {w:'ilka', t:'Oben stehen die Gegner, in der Mitte dein Team, unten das Kugelfeld. Jede Figur greift mit ihrer Farbe an. Der geteilte Rahmen zeigt Haupt- und Zweitfarbe.', hl:() => $('#team')},
+    {w:'rook', t:'Halte die blinkende rote Kugel gedrückt und zieh sie ein Feld nach links. Dann liegen drei Rote in einer Reihe, und ich greife an!', board:'A', hint:[[4,3],[4,2]], wait:'turn', need:1, col:'r'},
+    {w:'rook', t:'Treffer! Jede rote Kette löst den Angriff aller roten Figuren aus. Die große Zahl ist der Schaden. Sobald du eine Kugel bewegst, hast du 5 Sekunden Zeit, siehe Balken über dem Feld.'},
+    {w:'mila', t:'Autsch, die Drohne hat uns erwischt! Pinke Kugeln heilen das ganze Team. Zieh die blinkende pinke Kugel nach links.', board:'B', hint:[[4,3],[4,2]], wait:'turn', need:1, col:'p',
+     setup:() => { B.teamHp = Math.round(B.teamMax * .55); refreshTeam(); flashHurt(); shake(); SND.enemy(); }},
+    {w:'mila', t:'Schon besser. Die Lebensleiste gehört dem ganzen Team. Ist sie leer, ist der Kampf verloren. Wie viel Pink heilt, hängt vom Heilwert deiner Begleiter ab.', hl:() => $('#hpWrap')},
+    {w:'ilka', t:'Jetzt das Wichtigste: Combos! Zieh die blinkende rote Kugel ein Feld nach unten. Dabei entstehen zwei Ketten auf einmal.', board:'C', hint:[[3,2],[4,2]], wait:'turn', need:2},
+    {w:'ilka', t:'Zwei Combos! Jede weitere Combo im selben Zug macht alle Angriffe und die Heilung 25 % stärker. Zwei kurze Ketten bringen mehr als eine lange. Auch nachfallende Kugeln können neue Combos bilden.'},
+    {w:'mila', t:'Ein zweiter Gegner! Ab 5 Kugeln in einer Kette trifft der Angriff alle Gegner. Zieh die blinkende grüne Kugel nach unten.', board:'D', hint:[[3,2],[4,2]], wait:'turn', need:1, five:true,
+     setup:() => { B.enemies.push(mkEnemy({t:'drone', col:'r', tut:true})); renderEnemies(); refreshTeam(); }},
+    {w:'nox', t:'Farben zählen: Rot schlägt Grün, Grün schlägt Blau, Blau schlägt Rot. Gelb und Schwarz schlagen sich gegenseitig. Pfeile am Porträt zeigen: grün ▲ = doppelter Schaden, rot ▼ = halber Schaden gegen das Ziel.', hl:() => $('#team')},
+    {w:'nox', t:'Tippe den zweiten Gegner an. Er wird dann dein Ziel, und alle Einzelangriffe gehen auf ihn.', wait:'target', hl:() => enemyEl(B.enemies[1]), pos:'bottom'},
+    {w:'nox', t:'Tippst du dein Ziel noch einmal an, bekommst du alle Details: Werte, Schwächen und seine nächsten Aktionen.'},
+    {w:'bolt', t:'ZAHL LINKS OBEN AM GEGNER: ZÜGE, BIS ER HANDELT. SCHILD RECHTS OBEN: SEINE NÄCHSTE AKTION.', hl:() => enemyEl(B.enemies[0]), pos:'bottom'},
+    {w:'bolt', t:'BEISPIEL: EIN NETZ! GESPERRTE KUGELN KANNST DU NICHT ZIEHEN. SIE ZÄHLEN ABER TROTZDEM IN KETTEN. DIE ZAHL ZEIGT DIE RESTLICHEN ZÜGE.',
+     setup:() => { randomGems(4, g => !g.lock).forEach(g => { g.lock = 2; g.pop = performance.now(); }); floatAt(enemyEl(B.enemies[0]), 'Klebenetz!', 'burst'); SND.debuff(); }, pos:'top'},
+    {w:'rook', t:'Meine Fähigkeit ist aufgeladen, mein Porträt leuchtet. Tippe mich an und dann auf „Einsetzen“.', wait:'power', who:'rook', hl:() => allyEl('rook'), pos:'top',
+     setup:() => { const a = B.allies.find(x => x.id === 'rook'); a.charge = a.cd; refreshTeam(); }},
+    {w:'rook', t:'Begleiter laden ihre Fähigkeit mit jedem Zug auf. Der Balken unter dem Porträt zeigt, wie weit.', pos:'top'},
+    {w:'ilka', t:'Meine Fähigkeit lädt sich durch Combos auf, in zwei Stufen. Sie ist bereit. Tippe mich an und setze sie ein.', wait:'power', who:'ilka', hl:() => allyEl('ilka'), pos:'top',
+     setup:() => { B.leaderCharge = B.t1; refreshTeam(); }},
+    {w:'ilka', t:'Die Gegner sind betäubt. Nach jedem Sieg sammeln deine Figuren Erfahrung. Ab Level 10 greifen sie auch mit ihrer Zweitfarbe an, und es gibt weitere Meilensteine. Alles steht im Team-Bildschirm.', pos:'top'},
+    {w:'ilka', t:'Jetzt du allein: Besiege beide Übungsdrohnen. Ab jetzt schlagen sie zurück! Der „?“-Knopf oben erklärt alles noch einmal.', pos:'top', last:true}
+  ];
+  function showStep() {
+    const st = S[i], box = $('#coach');
+    document.querySelectorAll('.hl').forEach(e => e.classList.remove('hl'));
+    TUT.hint = st.hint || null;
+    if (st.board) { setBoard(TB[st.board]); }
+    if (st.setup && !st.did) { st.did = true; st.setup(); }
+    const el = st.hl && st.hl(); if (el) el.classList.add('hl');
+    box.className = st.pos || (st.wait === 'turn' ? 'top' : 'bottom'); box.hidden = false;
+    box.innerHTML = `<div class="cpic">${portrait(CHARS[st.w])}</div><div class="cb"><b>${CHARS[st.w].name}<small>${i + 1}/${S.length}</small></b><p>${st.t}</p>
+      <div class="row2"><button class="skipT" id="tSkip">Tutorial überspringen</button>${st.wait ? '' : `<button class="btn sm" id="tNext">${st.last ? 'Los geht\'s!' : 'Weiter'}</button>`}</div></div>`;
+    const nx = $('#tNext'); if (nx) nx.onclick = () => { SND.pick(); advance(); };
+    $('#tSkip').onclick = skip;
+    B.busy = false;
+  }
+  function advance() {
+    if (S[i].last) return startFree();
+    i++; showStep();
+  }
+  function startFree() {
+    $('#coach').hidden = true; document.querySelectorAll('.hl').forEach(e => e.classList.remove('hl')); TUT.hint = null;
+    B.tutFree = true;
+    alive().forEach(e => { e.max = 900; e.hp = 900; e.cd = 2; e.stun = 0; });
+    refreshEnemies(); banner('Los!');
+  }
+  function skip() {
+    $('#coach').hidden = true; save.tutDone = true; persist();
+    drag = null; B = null; show('scrMap'); renderMap(); toast('Tutorial übersprungen. Du kannst es auf der Karte jederzeit starten.');
+  }
+  return {
+    hint:null,
+    start() { i = 0; S.forEach(x => x.did = false); showStep(); },
+    canDrag() { return S[i] && S[i].wait === 'turn'; },
+    onTurn(combos) {
+      const st = S[i]; if (!st || st.wait !== 'turn') return;
+      const ok = combos.length >= st.need && (!st.col || combos.some(g => g.color === st.col)) && (!st.five || combos.some(g => g.n >= 5));
+      if (ok) { setTimeout(() => { i++; showStep(); }, 500); }
+      else { toast('Fast! Folge dem Pfeil und versuch es noch einmal.'); setTimeout(showStep, 500); }
+    },
+    onPower(id) { const st = S[i]; if (st && st.wait === 'power' && st.who === id) setTimeout(() => { i++; showStep(); }, 600); },
+    onTarget(idx) { const st = S[i]; if (st && st.wait === 'target' && idx === 1) setTimeout(() => { i++; showStep(); }, 300); }
+  };
+})();
+async function tutWin() {
+  const first = !save.tutDone; save.tutDone = true;
+  ['ilka','rook','mila','bolt','nox'].forEach(id => { const R = save.roster[id]; if (first) { R.xp += 120; while (R.xp >= xpNeed(R.lvl)) { R.xp -= xpNeed(R.lvl); R.lvl++; } } });
+  persist(); banner('Geschafft!'); SND.win(); await sleep(1100);
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet"><p class="big">TUTORIAL GESCHAFFT!</p>
+    <p style="text-align:center">${first ? 'Deine Crew erhält +120 XP. ' : ''}Level 1 ist jetzt frei. Vor jedem Level kannst du über „Team wählen“ deine Crew zusammenstellen.</p>
+    <div class="btns"><button class="btn" id="tDone">Zur Karte</button></div></div>`;
+  $('#tDone').onclick = () => { closeOv(); B = null; mapChap = 0; show('scrMap'); renderMap(); };
+}
+
+/* ---------- Dialoge & Ende ---------- */
+function runDialogue(lines, chap) {
+  return new Promise(res => {
+    if (!lines || !lines.length) return res();
+    const ov = $('#overlay'); let i = 0;
+    const step = () => {
+      if (i >= lines.length) { closeOv(); res(); return; }
+      const L = lines[i++];
+      const isBoss = L.w === 'boss';
+      const bc = chap == null ? 4 : chap;
+      const pic = isBoss ? `<div style="background:#2b0f24;width:100%;height:100%;display:grid;place-items:center">${enemySvg('boss', BOSSES[bc].col)}</div>` : portrait(CHARS[L.w]);
+      ov.innerHTML = `<button class="skip" id="dSkip">Überspringen</button><div class="dlg"><div class="dpic">${pic}</div>
+        <div class="bubble"><b>${isBoss ? BOSSES[bc].name : CHARS[L.w].name}</b><p>${L.t}</p><span class="next">Tippen ▸</span></div></div>`;
+    };
+    ov.className = ''; ov.hidden = false;
+    ov.onclick = ev => { if (ev.target.closest('#dSkip')) i = lines.length; step(); };
+    step();
+  });
+}
+async function win() {
+  B.active = false; B.busy = true;
+  if (B.tut) return tutWin();
+  const n = B.li, L = B.L, first = !save.cleared[n - 1];
+  save.cleared[n - 1] = true;
+  const ids = ['ilka', ...save.team.filter(Boolean)], ups = [], secNew = [];
+  ids.forEach(id => {
+    const R = save.roster[id], had = secOn(id); R.xp += L.xp;
+    while (R.lvl < LVCAP && R.xp >= xpNeed(R.lvl)) { R.xp -= xpNeed(R.lvl); R.lvl++; ups.push(id); }
+    if (!had && secOn(id)) secNew.push(id);
+  });
+  let recruit = null;
+  const rw = REWARD[n];
+  if (first && rw && !save.roster[rw]) {
+    { const tl = save.team.filter(Boolean).map(lvOf); save.roster[rw] = {lvl:Math.max(1, Math.round(tl.reduce((x, y) => x + y, 0) / tl.length * .8)), xp:0}; } recruit = rw;
+    const slot = save.team.indexOf(null); if (slot >= 0) save.team[slot] = recruit;
+  }
+  persist();
+  banner('Sieg!'); SND.win(); await sleep(1100);
+  if (first && L.boss) await runDialogue(STORY[L.c].outro, L.c);
+  if (recruit) await runDialogue([{w:recruit, t:GREET[n % GREET.length]}]);
+  const next = n < MAXN ? n + 1 : null;
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  const upTxt = [...new Set(ups)].map(id => `<span>${CHARS[id].name.split(' ')[0]} <b>Lv ${save.roster[id].lvl}</b></span>`).join('');
+  ov.innerHTML = `<div class="sheet">
+    <p class="big">SIEG!</p>
+    <p style="text-align:center">Level ${n} geschafft · jedes Teammitglied erhält <b style="color:var(--accent)">+${L.xp} XP</b></p>
+    ${upTxt ? `<div class="lvlups">Level-Up: ${upTxt}</div>` : ''}
+    <div style="display:flex;flex-direction:column;gap:4px">${ids.map(id => { const R = save.roster[id], nm = MS.find(m => R.lvl < m.lv);
+      return `<div style="display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;font-size:12px"><span>${CHARS[id].name.split(' ')[0]} · ${R.lvl}</span><div><div class="xpb"><i style="width:${Math.min(100, R.xp / xpNeed(R.lvl) * 100)}%"></i><span>${R.xp}/${xpNeed(R.lvl)}</span></div>${nm ? `<small style="color:var(--muted)">Lv ${nm.lv}: ${msText(nm, id)}</small>` : ''}</div></div>`; }).join('')}</div>
+    ${secNew.map(id => `<div class="recruit"><div class="pic">${duo(id)}</div><div><small>Zweitfarbe freigeschaltet</small><br><b>${CHARS[id].name}</b><br><small>greift jetzt auch bei ${GEMC[CHARS[id].sec].name} an</small></div></div>`).join('')}
+    ${recruit ? `<div class="recruit"><div class="pic">${duo(recruit)}</div><div><small>Neu in der Crew · Lv ${save.roster[recruit].lvl}</small><br><b>${CHARS[recruit].name}</b><br><small>${CHARS[recruit].role} · ${GEMC[CHARS[recruit].color].name}/${GEMC[CHARS[recruit].sec].name} · ${CHARS[recruit].power.name}</small></div></div>` : ''}
+    ${next === null && first ? '<p style="text-align:center;color:var(--muted)">Alle 1000 Level geschafft! Du kannst jedes Level wiederholen, um deine Crew weiter zu leveln.</p>' : ''}
+    <div class="btns"><button class="btn sm ghost" id="wMap">Zur Karte</button>${next ? '<button class="btn sm ghost" id="wTeam">Team</button><button class="btn sm" id="wNext">Weiter</button>' : ''}</div></div>`;
+  const toMap = () => { closeOv(); B = null; mapChap = Math.floor(((next || n) - 1) / 10); show('scrMap'); renderMap(); };
+  $('#wMap').onclick = toMap;
+  if (next) {
+    $('#wNext').onclick = () => { closeOv(); startLevel(next); };
+    $('#wTeam').onclick = () => { closeOv(); B = null; openTeam(next); };
+  }
+}
+function lose() {
+  B.active = false; B.busy = true; SND.lose();
+  if (B.tut) { B.teamHp = B.teamMax; B.active = true; B.busy = false; refreshTeam(); toast('Im Tutorial verlierst du nicht. Weiter geht\'s!'); return; }
+  const n = B.li, ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet"><p class="big lose">NIEDERLAGE</p>
+    <p style="text-align:center">Die Crew musste sich zurückziehen. Tipp: Wiederhole frühere Level, um Erfahrung zu sammeln, und stell ein Team mit Farbvorteil gegen diese Gegner zusammen.</p>
+    <div class="btns"><button class="btn sm ghost" id="lMap">Zur Karte</button><button class="btn sm ghost" id="lTeam">Team ändern</button><button class="btn sm" id="lAgain">Nochmal</button></div></div>`;
+  $('#lMap').onclick = () => { closeOv(); B = null; show('scrMap'); renderMap(); };
+  $('#lTeam').onclick = () => { closeOv(); B = null; openTeam(n); };
+  $('#lAgain').onclick = () => { closeOv(); startLevel(n); };
+}
+
+/* ---------- Verdrahtung ---------- */
+function muteLabel() { $('#mute').textContent = SND.on ? 'Ton an' : 'Ton aus'; }
+$('#helpBtn').onclick = helpSheet;
+$('#mute').onclick = () => { SND.toggle(); muteLabel(); };
+muteLabel();
+$('#toTeam').onclick = () => openTeam(null);
+$('#teamDone').onclick = () => { teamFor = null; show('scrMap'); renderMap(); };
+$('#startBtn').onclick = () => { const n = teamFor; teamFor = null; if (n) startLevel(n); };
+$('#quitBtn').onclick = () => {
+  if (!B) return;
+  if (B.busy) return toast('Warte, bis der Zug vorbei ist.');
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet"><h2>Rückzug?</h2><p>Der Fortschritt in diesem Einsatz geht verloren.</p>
+    <div class="btns"><button class="btn sm ghost" id="qNo">Weiterkämpfen</button><button class="btn sm red" id="qYes">Rückzug</button></div></div>`;
+  $('#qNo').onclick = closeOv;
+  $('#qYes').onclick = () => { closeOv(); drag = null; B = null; $('#coach').hidden = true; show('scrMap'); renderMap(); };
+};
+function saveCode() { return btoa(unescape(encodeURIComponent(JSON.stringify(save)))); }
+$('#expBtn').onclick = () => {
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet"><h2>Spielstand sichern</h2><p>Kopiere diesen Code und bewahre ihn auf, zum Beispiel in den Notizen. Mit „Spielstand laden“ holst du deinen Fortschritt zurück, auch auf einem anderen Gerät.</p>
+    <textarea id="code" readonly style="width:100%;height:110px;font:12px monospace;border-radius:10px;border:2px solid var(--ink);padding:8px;box-sizing:border-box;background:#120c22;color:var(--text)">${saveCode()}</textarea>
+    <div class="btns"><button class="btn sm ghost" id="cClose">Schließen</button><button class="btn sm" id="cCopy">Kopieren</button></div></div>`;
+  $('#cClose').onclick = closeOv;
+  $('#cCopy').onclick = () => { const t = $('#code'); navigator.clipboard && navigator.clipboard.writeText(t.value).then(() => toast('Code kopiert.'), () => { t.select(); toast('Markiere den Code und kopiere ihn.'); }); if (!navigator.clipboard) { t.select(); toast('Markiere den Code und kopiere ihn.'); } };
+};
+$('#impBtn').onclick = () => {
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet"><h2>Spielstand laden</h2><p>Füge deinen gesicherten Code ein. Der aktuelle Spielstand wird dabei ersetzt.</p>
+    <textarea id="code" style="width:100%;height:110px;font:12px monospace;border-radius:10px;border:2px solid var(--ink);padding:8px;box-sizing:border-box;background:#120c22;color:var(--text)"></textarea>
+    <div class="btns"><button class="btn sm ghost" id="cClose">Abbrechen</button><button class="btn sm" id="cLoad">Laden</button></div></div>`;
+  $('#cClose').onclick = closeOv;
+  $('#cLoad').onclick = () => {
+    try {
+      const d = JSON.parse(decodeURIComponent(escape(atob($('#code').value.trim()))));
+      if (!d || !d.roster || !d.roster.ilka || !Array.isArray(d.team)) throw 0;
+      while (d.cleared.length < MAXN) d.cleared.push(false);
+      save = d; persist(); closeOv(); mapChap = Math.floor((firstOpen() - 1) / 10); renderMap(); toast('Spielstand geladen.');
+    } catch (e) { toast('Der Code ist ungültig. Prüfe, ob er vollständig kopiert wurde.'); }
+  };
+};
+$('#resetBtn').onclick = () => {
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  ov.innerHTML = `<div class="sheet"><h2>Neu anfangen?</h2><p>Alle Levels, Figuren und Erfahrungspunkte werden gelöscht.</p>
+    <div class="btns"><button class="btn sm ghost" id="rNo">Abbrechen</button><button class="btn sm red" id="rYes">Zurücksetzen</button></div></div>`;
+  $('#rNo').onclick = closeOv;
+  $('#rYes').onclick = () => { save = defSave(); persist(); mapChap = 0; closeOv(); renderMap(); };
+};
+
+renderMap();
+requestAnimationFrame(frame);
+if (!save.tutDone && !save.cleared[0]) setTimeout(() => startLevel(0), 300);
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
