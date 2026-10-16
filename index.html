@@ -300,11 +300,17 @@ svg{display:block}
 .tutCard b{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:.04em}
 .tutCard > div{flex:1;min-width:0}
 /* V3: Zweifarbige Rahmen, Kapitel, Crew-Raster */
-.duo{background:linear-gradient(135deg,var(--c1) 0 50%,var(--c2) 50% 100%);padding:3px;border:2.5px solid var(--ink);border-radius:13px;box-sizing:border-box;position:relative}
+.duo{background:var(--c1);padding:4px;border:2.5px solid var(--ink);border-radius:13px;box-sizing:border-box;position:relative}
+.duo .mainb{position:absolute;left:2px;top:2px;width:30%;max-width:20px;z-index:2;filter:drop-shadow(0 1px 0 var(--ink))}
+.duo .secb{position:absolute;right:2px;bottom:2px;width:34%;max-width:22px;aspect-ratio:1;border-radius:50%;background:var(--ink);border:2px solid #fff;display:grid;place-items:center;z-index:2;box-sizing:border-box}
+.duo .secb img{width:82%}
+.duo .secb.lk{border-color:#6c6390}
+.duo .secb.lk img{filter:grayscale(1);opacity:.4}
+.ally.duo .secb{bottom:9px}
 .duo > .in{width:100%;height:100%;border-radius:9px;overflow:hidden;border:2px solid var(--ink);box-sizing:border-box}
 .ally.duo{padding:3px}
 .ally .gemtag.sec{left:auto;right:3px;top:auto;bottom:9px}
-.ally .aff{right:auto;left:18px;top:3px}
+.ally .aff{right:4px;left:auto;top:3px;font-size:15px}
 .chaps{display:flex;gap:8px;align-items:center;padding:2px 0 6px;flex:none}
 .chapMid{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column}
 .chapMid b{font-family:var(--display);font-size:22px;font-weight:400;letter-spacing:.05em}
@@ -492,7 +498,7 @@ const CHARS = {
 
 /* Zweitfarben der festen Figuren (aktiv ab Level 10) */
 const SEC_LV = 10;
-Object.entries({ilka:'y', rook:'r', mila:'b', bolt:'k', nox:'g', juno:'y', tamsin:'g', ottilie:'b', kasimir:'r', vesper:'k'}).forEach(([k, v]) => CHARS[k].sec = v);
+Object.entries({ilka:'y', rook:'y', mila:'b', bolt:'k', nox:'g', juno:'y', tamsin:'g', ottilie:'b', kasimir:'r', vesper:'r'}).forEach(([k, v]) => CHARS[k].sec = v);
 
 function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const C5 = ['r','b','g','y','k'];
@@ -531,7 +537,7 @@ const GEN_NAMES = ['Ada Brenn','Theo Lumen','Kira Voss','Emil Faro','Lene Quast'
   const PW = ['Sternsplitter','Zeitfaden','Glutherz','Morgenruf','Pendelschlag','Funkenregen','Echoklinge','Nebelband','Kompassnadel','Lichtbogen','Rostbann'];
   GEN_NAMES.forEach((nm, i) => {
     const R = rng(1000 + i * 77), pick = a => a[Math.floor(R() * a.length)];
-    const color = C5[i % 5], sec = C5[(i * 3 + 2) % 5];
+    const color = C5[i % 5]; let sec = C5[(i * 3 + 2) % 5]; if (sec === color) sec = C5[(i + 2) % 5];
     const arch = ['off','tank','heal','bal'][(i + Math.floor(i / 5)) % 4];
     const [role, base] = ARCH[arch];
     const other = C5.filter(c => c !== color);
@@ -1088,9 +1094,9 @@ const MUS = (() => {
 const HAP = (() => {
   let lab = null;
   function ios() {
-    if (!lab) { const inp = document.createElement('input'); inp.type = 'checkbox'; inp.setAttribute('switch', ''); inp.id = 'hapSw'; inp.style.display = 'none';
-      lab = document.createElement('label'); lab.htmlFor = 'hapSw'; lab.style.display = 'none'; document.body.append(inp, lab); }
-    lab.click();
+    const l = document.createElement('label'); l.setAttribute('aria-hidden', 'true'); l.style.display = 'none';
+    const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
+    document.head.appendChild(l); l.click(); document.head.removeChild(l);
   }
   return {
     buzz(level) {
@@ -1115,7 +1121,7 @@ function settingsSheet() {
     <input type="range" id="rSfx" min="0" max="100" value="${pct('sfx')}" aria-label="Lautstärke Effekte">
     <div class="srow"><div><b>Musik</b><small id="lMusic">${SET.get('musicOn') ? pct('music') + ' %' : 'aus'}</small></div>${tog('tMusic', 'musicOn', 'Musik an oder aus')}</div>
     <input type="range" id="rMusic" min="0" max="100" value="${pct('music')}" aria-label="Lautstärke Musik">
-    <div class="srow"><div><b>Vibration</b><small>${navigator.vibrate ? 'bei Zügen, Treffern und Fähigkeiten' : 'auf dem iPhone ab iOS 18, Stärke nur angenähert'}</small></div>${tog('tVib', 'vib', 'Vibration an oder aus')}</div>
+    <div class="srow"><div><b>Vibration</b><small>${navigator.vibrate ? 'bei Zügen, Treffern und Fähigkeiten' : 'iPhone (ab iOS 18): spürbar beim Loslassen einer Kugel und bei Knöpfen. Während des Ziehens erlaubt iOS keine Vibration.'}</small></div>${tog('tVib', 'vib', 'Vibration an oder aus')}</div>
     <div class="seg" id="vStr">${['Leicht', 'Mittel', 'Stark'].map((t, i) => `<button data-v="${i + 1}" class="${SET.get('vibStr') === i + 1 ? 'on' : ''}">${t}</button>`).join('')}</div>
     <div class="btns"><button class="btn sm ghost" id="vTest">Vibration testen</button><button class="btn sm" id="sClose">Fertig</button></div></div>`;
   const bind = (r, k, l, onK, offTxt) => $(r).oninput = e => { SET.set(k, e.target.value / 100); $(l).textContent = (onK && !SET.get(onK)) ? offTxt : e.target.value + ' %'; };
@@ -1176,7 +1182,7 @@ const recLevel = n => Math.min(LVCAP, Math.max(1, Math.round(n <= 100 ? 2 + n * 
 const secOn = id => !!CHARS[id].sec && save.roster[id] && save.roster[id].lvl >= SEC_LV;
 function duo(id, extra) {
   const ch = CHARS[id], c2 = secOn(id) ? PBG[ch.sec] : '#4a4560';
-  return `<div class="duo ${extra || ''}" style="--c1:${PBG[ch.color]};--c2:${c2}"><div class="in">${portrait(ch)}</div></div>`;
+  return `<div class="duo ${extra || ''}" style="--c1:${PBG[ch.color]}"><div class="in">${portrait(ch)}</div><img class="mainb" src="${gemUrl(ch.color)}" alt="Hauptfarbe ${GEMC[ch.color].name}"><span class="secb ${secOn(id) ? '' : 'lk'}" title="Zweitfarbe ${GEMC[ch.sec].name}"><img src="${gemUrl(ch.sec)}" alt="Zweitfarbe ${GEMC[ch.sec].name}"></span></div>`;
 }
 const unlocked = n => n === 0 || (n === 1 ? !!save.tutDone : save.cleared[n - 2]);
 const firstOpen = () => { for (let n = 1; n <= MAXN; n++) if (!save.cleared[n - 1]) return n; return MAXN; };
@@ -1435,8 +1441,8 @@ function renderTeam() {
   B.allies.forEach(a => {
     const d = document.createElement('button');
     d.className = 'ally duo' + (a.leader ? ' lead' : ''); d.setAttribute('aria-label', a.ch.name);
-    d.style.setProperty('--c1', PBG[a.color]); d.style.setProperty('--c2', a.sec ? PBG[a.sec] : '#4a4560');
-    d.innerHTML = `<div class="in">${portrait(a.ch)}</div><img class="gemtag" src="${gemUrl(a.color)}" alt="">${a.sec ? `<img class="gemtag sec" src="${gemUrl(a.sec)}" alt="">` : ''}<span class="aff"></span><div class="bar"><i></i>${a.leader ? `<b style="left:${B.t1 / B.t2 * 100}%"></b>` : ''}</div>`;
+    d.style.setProperty('--c1', PBG[a.color]);
+    d.innerHTML = `<div class="in">${portrait(a.ch)}</div><img class="mainb" src="${gemUrl(a.color)}" alt=""><span class="secb ${a.sec ? '' : 'lk'}"><img src="${gemUrl(a.ch.sec)}" alt=""></span><span class="aff"></span><div class="bar"><i></i>${a.leader ? `<b style="left:${B.t1 / B.t2 * 100}%"></b>` : ''}</div>`;
     d.onclick = () => openAlly(a);
     a.el = d; t.appendChild(d);
   });
@@ -1454,7 +1460,7 @@ function refreshTeam() {
     a.el.classList.toggle('ready', ready);
     const af = a.el.querySelector('.aff');
     const sym = c => { const m = tg && c ? aff(c, tg.color) : 1; return m > 1 ? '<span style="color:var(--good)">▲</span>' : m < 1 ? '<span style="color:var(--hot)">▼</span>' : ''; };
-    af.innerHTML = sym(a.color) + sym(a.sec); af.className = 'aff';
+    af.innerHTML = sym(a.color); af.className = 'aff';
   });
   $('#hp i').style.width = Math.max(0, B.teamHp / B.teamMax * 100) + '%';
   $('#hp').classList.toggle('poison', !!B.poison);
@@ -1490,7 +1496,7 @@ function helpSheet() {
       <span>${im('p')}</span><span>Heilt das Team (Heilwert aller Begleiter).</span><span>${im('s')}</span><span>Zählt als Combo, sonst keine Wirkung.</span></div>
     <p class="pw"><em>Kette:</em> 3 Kugeln = 100 % ATK, jede weitere +25 %. Ab 5 Kugeln trifft der Angriff alle Gegner.</p>
     <p class="pw"><em>Combos:</em> Jede weitere Combo im selben Zug gibt allen Angriffen und der Heilung +25 %. Zwei Dreierketten sind stärker als eine Sechserkette.</p>
-    <p class="pw"><em>Zweitfarbe:</em> ab Lv 10 greift eine Figur auch bei ihrer Zweitfarbe an (50 %, ab Lv 25 75 %).</p>
+    <p class="pw"><em>Haupt- und Zweitfarbe:</em> Die Rahmenfarbe eines Porträts ist die Hauptfarbe, der kleine runde Stein unten rechts die Zweitfarbe. Ab Lv 10 greift die Figur auch bei ihrer Zweitfarbe an (50 %, ab Lv 25 75 %). Grau heißt: noch gesperrt. Der Pfeil am Porträt zeigt, ob die Hauptfarbe gegen das Ziel stark ▲ oder schwach ▼ ist.</p>
     <p class="pw"><em>Gegner:</em> Die Zahl links oben zeigt, in wie vielen Zügen er handelt. Das Schild rechts oben zeigt seine nächste Aktion. Tippe einen Gegner zum Zielen an und noch einmal für alle Details.</p>
     <p class="pw"><em>Fähigkeiten:</em> Tippe ein Porträt an. Ein leuchtender Rahmen heißt: bereit.</p>
     <div class="btns"><button class="btn sm" id="hClose">Verstanden</button></div></div>`;
@@ -1678,7 +1684,7 @@ canvas.addEventListener('pointermove', e => {
     if (!drag.started) { drag.started = true; drag.t0 = performance.now(); }
   }
 });
-canvas.addEventListener('pointerup', () => endDrag());
+canvas.addEventListener('pointerup', () => { if (drag && drag.started) HAP.buzz(2); endDrag(); });
 canvas.addEventListener('pointercancel', () => endDrag());
 function endDrag() {
   if (!drag) return;
@@ -1925,7 +1931,7 @@ const TUT = (() => {
   const allyEl = id => { const a = B.allies.find(x => x.id === id); return a && a.el; };
   const S = [
     {w:'ilka', t:'Willkommen bei der Zeitwacht! In ein paar kurzen Schritten zeige ich dir, wie ein Kampf funktioniert.'},
-    {w:'ilka', t:'Oben stehen die Gegner, in der Mitte dein Team, unten das Kugelfeld. Jede Figur greift mit ihrer Farbe an. Der geteilte Rahmen zeigt Haupt- und Zweitfarbe.', hl:() => $('#team')},
+    {w:'ilka', t:'Oben stehen die Gegner, in der Mitte dein Team, unten das Kugelfeld. Jede Figur greift mit ihrer Farbe an: Die Rahmenfarbe ist die Hauptfarbe. Der kleine runde Stein unten rechts ist die Zweitfarbe, grau heißt noch gesperrt (frei ab Level 10).', hl:() => $('#team')},
     {w:'rook', t:'Halte die blinkende rote Kugel gedrückt und zieh sie ein Feld nach links. Dann liegen drei Rote in einer Reihe, und ich greife an!', board:'A', hint:[[4,3],[4,2]], wait:'turn', need:1, col:'r'},
     {w:'rook', t:'Treffer! Jede rote Kette löst den Angriff aller roten Figuren aus. Die große Zahl ist der Schaden. Sobald du eine Kugel bewegst, hast du 5 Sekunden Zeit, siehe Balken über dem Feld.'},
     {w:'mila', t:'Autsch, die Drohne hat uns erwischt! Pinke Kugeln heilen das ganze Team. Zieh die blinkende pinke Kugel nach links.', board:'B', hint:[[4,3],[4,2]], wait:'turn', need:1, col:'p',
