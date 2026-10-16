@@ -165,6 +165,7 @@ svg{display:block}
 .ally .aff{position:absolute;top:1px;right:2px;font-size:13px;line-height:1;-webkit-text-stroke:1px var(--ink);font-family:var(--display)}
 .ally .aff.up{color:var(--good)}.ally .aff.down{color:var(--hot)}
 .ally.bounce{animation:bounce .3s}
+.ally.queued{outline:3px dashed #fff;outline-offset:-3px}
 .ally .gemtag{position:absolute;left:2px;top:2px;width:15px;height:15px}
 #hpWrap{position:relative;margin-top:6px;flex:none}
 #hp{height:16px;border:3px solid var(--ink);border-radius:10px;background:#3a1f2a;overflow:hidden}
@@ -366,6 +367,19 @@ table.st td.up{color:var(--good)}
 .enemy.elite .efig svg{filter:drop-shadow(0 0 6px #ffcf3a) drop-shadow(0 5px 0 rgba(0,0,0,.35))}
 .ename.el{color:var(--accent)}
 .startBar{position:sticky;bottom:0;padding-block:10px 4px;background:linear-gradient(transparent,var(--bg) 35%);display:flex;justify-content:center;flex:none}
+
+/* Einstellungen */
+.set input[type=range]{width:100%;accent-color:var(--accent);height:28px;margin:0}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px}
+.srow b{font-family:var(--display);font-weight:400;font-size:19px;letter-spacing:.04em;display:block}
+.srow small{color:var(--muted);font-size:12px}
+.tog{flex:none;width:54px;height:32px;border-radius:20px;border:3px solid var(--ink);background:#3a3160;position:relative;padding:0}
+.tog i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#bdb5dc;transition:transform .15s,background .15s}
+.tog.on{background:var(--good)}
+.tog.on i{transform:translateX(22px);background:#fff}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{border:2.5px solid var(--ink);border-radius:10px;background:var(--panel-2);padding:7px 0;font-size:14px}
+.seg button.on{background:var(--accent);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 </style>
 
@@ -383,7 +397,7 @@ table.st td.up{color:var(--good)}
     </div>
     <div class="teamPeek">
       <div class="faces" id="peek"></div>
-      <button class="btn sm ghost" id="toTeam">Team</button>
+      <button class="btn sm ghost" id="setBtn" aria-label="Einstellungen">⚙</button><button class="btn sm ghost" id="toTeam">Team</button>
     </div>
     <div id="tutSlot"></div>
     <div class="chaps" id="chaps"></div>
@@ -406,7 +420,7 @@ table.st td.up{color:var(--good)}
   <section id="scrBattle" hidden>
     <div id="bHead">
       <div style="min-width:0"><div id="bTitle"></div><div id="bWave"></div></div>
-      <div style="display:flex;gap:6px"><button class="btn sm ghost" id="helpBtn" aria-label="Hilfe">?</button><button class="btn sm ghost" id="mute" aria-label="Ton an oder aus">Ton</button><button class="btn sm ghost" id="quitBtn">Rückzug</button></div>
+      <div style="display:flex;gap:6px"><button class="btn sm ghost" id="helpBtn" aria-label="Hilfe">?</button><button class="btn sm ghost" id="mute" aria-label="Einstellungen">⚙</button><button class="btn sm ghost" id="quitBtn">Rückzug</button></div>
     </div>
     <div id="stage"></div>
     <div id="team"></div>
@@ -969,43 +983,155 @@ function sceneSvg(i) {
 }
 function motes(n) { let s = '<div class="motes">'; for (let i = 0; i < n; i++) s += `<i style="left:${Math.random() * 100}%;animation-duration:${6 + Math.random() * 8}s;animation-delay:${-Math.random() * 12}s;transform:scale(${.5 + Math.random()})"></i>`; return s + '</div>'; }
 
-/* ---------- Klang ---------- */
+/* ---------- Einstellungen, Klang, Musik, Vibration ---------- */
+const SET = (() => {
+  const def = {master:.8, masterOn:true, sfx:.8, music:.5, musicOn:true, vib:true, vibStr:2};
+  let s = def;
+  try { s = Object.assign({}, def, JSON.parse(localStorage.getItem('zw-settings') || '{}')); } catch (e) {}
+  return {get:k => s[k], set(k, v) { s[k] = v; try { localStorage.setItem('zw-settings', JSON.stringify(s)); } catch (e) {} AUD.apply(); }};
+})();
+const AUD = (() => {
+  let ac = null, master, sfx, music;
+  function init() {
+    if (ac) return ac;
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+    master = ac.createGain(); sfx = ac.createGain(); music = ac.createGain();
+    sfx.connect(master); music.connect(master); master.connect(ac.destination);
+    apply(); return ac;
+  }
+  function apply() {
+    if (!ac) return;
+    const t = ac.currentTime, sq = v => v * v;
+    master.gain.setTargetAtTime(SET.get('masterOn') ? sq(SET.get('master')) : 0, t, .05);
+    sfx.gain.setTargetAtTime(sq(SET.get('sfx')), t, .05);
+    music.gain.setTargetAtTime(SET.get('musicOn') ? sq(SET.get('music')) * .9 : 0, t, .3);
+  }
+  function ctx() { const a = init(); if (a && a.state === 'suspended' && !document.hidden) a.resume(); return a; }
+  return {ctx, apply, get sfx() { return sfx; }, get music() { return music; }, get ac() { return ac; }};
+})();
+document.addEventListener('visibilitychange', () => { const a = AUD.ac; if (!a) return; if (document.hidden) a.suspend(); else a.resume(); });
+
 const SND = (() => {
-  let ac = null, on = true;
-  try { on = localStorage.getItem('zw-sound') !== '0'; } catch (e) {}
-  function ac0() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } } if (ac.state === 'suspended') ac.resume(); return ac; }
+  const live = () => SET.get('masterOn') && SET.get('sfx') > 0;
   function tone(f, d, type, v, f2, delay) {
-    if (!on) return; const a = ac0(); if (!a) return; const t = a.currentTime + (delay || 0);
+    if (!live()) return; const a = AUD.ctx(); if (!a) return; const t = a.currentTime + (delay || 0);
     const o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine';
     o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
     g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v || .06, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
-    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .03);
+    o.connect(g); g.connect(AUD.sfx); o.start(t); o.stop(t + d + .03);
   }
   function noise(d, v, hp, delay) {
-    if (!on) return; const a = ac0(); if (!a) return; const t = a.currentTime + (delay || 0);
+    if (!live()) return; const a = AUD.ctx(); if (!a) return; const t = a.currentTime + (delay || 0);
     const b = a.createBuffer(1, Math.floor(a.sampleRate * d), a.sampleRate), ch = b.getChannelData(0);
     for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
     const src = a.createBufferSource(); src.buffer = b; const fl = a.createBiquadFilter(); fl.type = 'highpass'; fl.frequency.value = hp; const g = a.createGain(); g.gain.value = v;
-    src.connect(fl); fl.connect(g); g.connect(a.destination); src.start(t);
+    src.connect(fl); fl.connect(g); g.connect(AUD.sfx); src.start(t);
   }
   return {
-    unlock() { if (on) ac0(); },
-    get on() { return on; },
-    toggle() { on = !on; try { localStorage.setItem('zw-sound', on ? '1' : '0'); } catch (e) {} },
-    pick() { tone(520, .07, 'triangle', .06, 820); },
-    swap(n) { tone(280 + Math.min(n, 30) * 16, .05, 'triangle', .035); },
-    combo(n) { const f = 392 * Math.pow(2, Math.min(n - 1, 14) / 6); tone(f, .16, 'square', .04); tone(f * 1.5, .22, 'sine', .05, 0, .03); },
-    hit(strong) { noise(.12, strong ? .22 : .13, 600); tone(strong ? 150 : 190, .16, 'sawtooth', .06, 60); },
+    unlock() { AUD.ctx(); MUS.ensure(); },
+    pick() { tone(520, .07, 'triangle', .06, 820); HAP.buzz(1); },
+    swap(n) { tone(280 + Math.min(n, 30) * 16, .05, 'triangle', .035); HAP.buzz(1); },
+    combo(n) { const f = 392 * Math.pow(2, Math.min(n - 1, 14) / 6); tone(f, .16, 'square', .04); tone(f * 1.5, .22, 'sine', .05, 0, .03); HAP.buzz(2); },
+    hit(strong) { noise(.12, strong ? .22 : .13, 600); tone(strong ? 150 : 190, .16, 'sawtooth', .06, 60); if (strong) HAP.buzz(2); },
     heal() { [660, 880, 1175].forEach((f, i) => tone(f, .2, 'sine', .05, 0, i * .07)); },
-    power() { tone(220, .55, 'sawtooth', .05, 880); noise(.45, .07, 2000, .12); },
-    enemy() { tone(120, .35, 'sawtooth', .09, 45); noise(.25, .16, 300); },
-    debuff() { tone(520, .32, 'square', .035, 170); },
+    power() { tone(220, .55, 'sawtooth', .05, 880); noise(.45, .07, 2000, .12); HAP.buzz(3); },
+    enemy() { tone(120, .35, 'sawtooth', .09, 45); noise(.25, .16, 300); HAP.buzz(3); },
+    debuff() { tone(520, .32, 'square', .035, 170); HAP.buzz(2); },
     tick() { tone(1250, .03, 'square', .025); },
-    win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .32, 'triangle', .07, 0, i * .12)); },
-    lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, .36, 'triangle', .06, 0, i * .16)); }
+    win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .32, 'triangle', .07, 0, i * .12)); HAP.buzz(3); },
+    lose() { [392, 330, 262, 196].forEach((f, i) => tone(f, .36, 'triangle', .06, 0, i * .16)); HAP.buzz(3); }
+  };
+})();
+
+/* Hintergrundmusik: live erzeugt, drei Stimmungen */
+const MUS = (() => {
+  let timer = null, next = 0, step = 0, mode = 'map';
+  const PROG = {map:[[57,60,64],[53,57,60],[48,52,55],[55,59,62]], battle:[[57,60,64],[53,57,60],[55,59,62],[52,56,59]], boss:[[50,53,57],[46,50,53],[48,52,55],[45,49,52]]};
+  const BPM = {map:84, battle:112, boss:126};
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function note(m, t, d, type, v, cut) {
+    const a = AUD.ac, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(hz(m), t);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + Math.min(.03, d / 4)); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    if (cut) { const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cut; o.connect(f); f.connect(g); } else o.connect(g);
+    g.connect(AUD.music); o.start(t); o.stop(t + d + .05);
+  }
+  function drum(t, kick) {
+    const a = AUD.ac;
+    if (kick) { const o = a.createOscillator(), g = a.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(40, t + .15);
+      g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18); o.connect(g); g.connect(AUD.music); o.start(t); o.stop(t + .2); return; }
+    const b = a.createBuffer(1, Math.floor(a.sampleRate * .04), a.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; f.type = 'highpass'; f.frequency.value = 7000; g.gain.value = .08;
+    s.connect(f); f.connect(g); g.connect(AUD.music); s.start(t);
+  }
+  function play(s, t) {
+    const sp = 60 / BPM[mode] / 4, bar = Math.floor(s / 16) % 4, pos = s % 16, ch = PROG[mode][bar], calm = mode === 'map';
+    if (pos === 0) ch.forEach(m => note(m, t, sp * 16, 'sine', calm ? .035 : .025, 0));
+    if (pos % 8 === 0) note(ch[0] - 24, t, sp * (calm ? 7 : 3.5), 'triangle', .2, 0);
+    if (!calm && pos % 4 === 2) note(ch[0] - 12, t, sp * 1.5, 'triangle', .12, 0);
+    if (calm ? pos % 2 === 0 : true) note(ch[(pos >> (calm ? 1 : 0)) % 3] + (pos >= 8 ? 24 : 12), t, sp * (calm ? 1.8 : .9), 'square', calm ? .02 : .022, calm ? 1400 : 2200);
+    if (!calm) { if (pos % 4 === 0) drum(t, true); if (pos % 2 === 1) drum(t, false); if (mode === 'boss' && pos === 14) drum(t, true); }
+  }
+  function tick() {
+    const a = AUD.ac; if (!a || a.state !== 'running') return;
+    if (next < a.currentTime) next = a.currentTime + .05;
+    while (next < a.currentTime + .3) { play(step, next); next += 60 / BPM[mode] / 4; step++; }
+  }
+  return {
+    ensure() { if (!timer && AUD.ctx()) timer = setInterval(tick, 90); },
+    setMode(m) { if (m === mode) return; mode = m; step = 0; }
+  };
+})();
+
+/* Vibration: Android über navigator.vibrate, iPhone (ab iOS 18) über ein unsichtbares Schalter-Element */
+const HAP = (() => {
+  let lab = null;
+  function ios() {
+    if (!lab) { const inp = document.createElement('input'); inp.type = 'checkbox'; inp.setAttribute('switch', ''); inp.id = 'hapSw'; inp.style.display = 'none';
+      lab = document.createElement('label'); lab.htmlFor = 'hapSw'; lab.style.display = 'none'; document.body.append(inp, lab); }
+    lab.click();
+  }
+  return {
+    buzz(level) {
+      if (!SET.get('vib')) return;
+      const st = SET.get('vibStr');
+      if (navigator.vibrate) { try { navigator.vibrate(Math.round([8, 18, 35][st - 1] * level)); } catch (e) {} return; }
+      const n = Math.max(1, Math.min(4, Math.round((st + level - 1) / 2)));
+      for (let i = 0; i < n; i++) setTimeout(() => { try { ios(); } catch (e) {} }, i * 60);
+    }
   };
 })();
 document.addEventListener('pointerdown', () => SND.unlock(), {passive:true});
+
+function settingsSheet() {
+  const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
+  const pct = k => Math.round(SET.get(k) * 100);
+  const tog = (id, k, lbl) => `<button class="tog ${SET.get(k) ? 'on' : ''}" id="${id}" aria-pressed="${SET.get(k)}" aria-label="${lbl}"><i></i></button>`;
+  ov.innerHTML = `<div class="sheet set"><h2>Einstellungen</h2>
+    <div class="srow"><div><b>Gesamtlautstärke</b><small id="lMaster">${SET.get('masterOn') ? pct('master') + ' %' : 'stumm'}</small></div>${tog('tMaster', 'masterOn', 'Ton an oder aus')}</div>
+    <input type="range" id="rMaster" min="0" max="100" value="${pct('master')}" aria-label="Gesamtlautstärke">
+    <div class="srow"><div><b>Effekte</b><small id="lSfx">${pct('sfx')} %</small></div></div>
+    <input type="range" id="rSfx" min="0" max="100" value="${pct('sfx')}" aria-label="Lautstärke Effekte">
+    <div class="srow"><div><b>Musik</b><small id="lMusic">${SET.get('musicOn') ? pct('music') + ' %' : 'aus'}</small></div>${tog('tMusic', 'musicOn', 'Musik an oder aus')}</div>
+    <input type="range" id="rMusic" min="0" max="100" value="${pct('music')}" aria-label="Lautstärke Musik">
+    <div class="srow"><div><b>Vibration</b><small>${navigator.vibrate ? 'bei Zügen, Treffern und Fähigkeiten' : 'auf dem iPhone ab iOS 18, Stärke nur angenähert'}</small></div>${tog('tVib', 'vib', 'Vibration an oder aus')}</div>
+    <div class="seg" id="vStr">${['Leicht', 'Mittel', 'Stark'].map((t, i) => `<button data-v="${i + 1}" class="${SET.get('vibStr') === i + 1 ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <div class="btns"><button class="btn sm ghost" id="vTest">Vibration testen</button><button class="btn sm" id="sClose">Fertig</button></div></div>`;
+  const bind = (r, k, l, onK, offTxt) => $(r).oninput = e => { SET.set(k, e.target.value / 100); $(l).textContent = (onK && !SET.get(onK)) ? offTxt : e.target.value + ' %'; };
+  bind('#rMaster', 'master', '#lMaster', 'masterOn', 'stumm');
+  bind('#rSfx', 'sfx', '#lSfx');
+  bind('#rMusic', 'music', '#lMusic', 'musicOn', 'aus');
+  $('#rSfx').onchange = () => SND.combo(3);
+  const flip = (id, k, after) => $(id).onclick = () => { SET.set(k, !SET.get(k)); $(id).classList.toggle('on', SET.get(k)); $(id).setAttribute('aria-pressed', SET.get(k)); after && after(); };
+  flip('#tMaster', 'masterOn', () => { $('#lMaster').textContent = SET.get('masterOn') ? pct('master') + ' %' : 'stumm'; });
+  flip('#tMusic', 'musicOn', () => { $('#lMusic').textContent = SET.get('musicOn') ? pct('music') + ' %' : 'aus'; });
+  flip('#tVib', 'vib');
+  $('#vStr').querySelectorAll('button').forEach(b => b.onclick = () => { SET.set('vibStr', +b.dataset.v); $('#vStr').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); HAP.buzz(2); });
+  $('#vTest').onclick = () => HAP.buzz(3);
+  $('#sClose').onclick = closeOv; ov.onclick = ev => { if (ev.target === ov) closeOv(); };
+}
+
 
 /* ---------- Spielstand ---------- */
 const KEY = 'zeitwaechter-app';
@@ -1057,6 +1183,7 @@ const firstOpen = () => { for (let n = 1; n <= MAXN; n++) if (!save.cleared[n - 
 
 /* ---------- Bildschirme ---------- */
 function show(name) {
+  MUS.setMode(name === 'scrBattle' ? (B && B.L && B.L.boss ? 'boss' : 'battle') : 'map');
   ['scrMap','scrTeam','scrBattle'].forEach(id => $('#' + id).hidden = id !== name);
   if (name === 'scrBattle') requestAnimationFrame(layout);
 }
@@ -1731,7 +1858,8 @@ function openAlly(a) {
     ready = a.charge >= a.cd;
     status = ready ? 'Bereit!' : `Noch ${a.cd - a.charge} ${a.cd - a.charge === 1 ? 'Runde' : 'Runden'}`;
   }
-  const can = ready && !B.busy && B.active;
+  const can = ready && B.active && !a.queued;
+  if (ready && B.busy) status += ' · wird direkt nach der laufenden Aktion ausgelöst';
   ov.className = ''; ov.hidden = false;
   ov.innerHTML = `<div class="sheet" role="dialog" aria-label="${ch.name}">
     <div class="row"><div class="pic">${portrait(ch)}</div><div style="min-width:0">
@@ -1747,7 +1875,13 @@ function openAlly(a) {
 function closeOv() { const ov = $('#overlay'); ov.hidden = true; ov.innerHTML = ''; ov.onclick = null; }
 async function usePower(a) {
   closeOv();
-  if (B.busy || !B.active) return;
+  if (!B || !B.active || a.queued) return;
+  const myB = B;
+  a.queued = true; a.el.classList.add('queued');
+  while (B === myB && B.busy) await sleep(50);
+  a.queued = false; a.el.classList.remove('queued');
+  if (B !== myB || !B.active) return;
+  if (a.leader ? B.leaderCharge < B.t1 : a.charge < a.cd) return;
   B.busy = true;
   const p = a.ch.power, pm = pwrMult(a.id), m = lvMult(a.id) * pm;
   let fx;
@@ -1756,7 +1890,7 @@ async function usePower(a) {
   banner(p.name + '!', 'power'); SND.power();
   { const [ax, ay] = relCenter(a.el); FX.burst(ax, ay, GEMC[a.color].light, 30, 6); FX.ring(ax, ay, '#fff', 16); }
   a.el.classList.remove('bounce'); void a.el.offsetWidth; a.el.classList.add('bounce');
-  await sleep(450);
+  await sleep(220);
   const now = performance.now();
   for (const f of fx) {
     switch (f.type) {
@@ -1772,7 +1906,7 @@ async function usePower(a) {
     }
   }
   refreshTeam(); refreshEnemies();
-  await sleep(350);
+  await sleep(150);
   if (!alive().length) { await waveClear(); if (!B.active) return; }
   B.busy = false;
   if (B.tut) TUT.onPower(a.id);
@@ -1941,10 +2075,9 @@ function lose() {
 }
 
 /* ---------- Verdrahtung ---------- */
-function muteLabel() { $('#mute').textContent = SND.on ? 'Ton an' : 'Ton aus'; }
 $('#helpBtn').onclick = helpSheet;
-$('#mute').onclick = () => { SND.toggle(); muteLabel(); };
-muteLabel();
+$('#mute').onclick = settingsSheet;
+$('#setBtn').onclick = settingsSheet;
 $('#toTeam').onclick = () => openTeam(null);
 $('#teamDone').onclick = () => { teamFor = null; show('scrMap'); renderMap(); };
 $('#startBtn').onclick = () => { const n = teamFor; teamFor = null; if (n) startLevel(n); };
