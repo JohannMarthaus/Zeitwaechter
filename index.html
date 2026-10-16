@@ -461,7 +461,7 @@ table.st td.up{color:var(--good)}
 <div id="start" hidden>
   <canvas id="startCv" aria-hidden="true"></canvas>
   <div class="sTop"><div class="sBoss" id="sBoss"></div><h1 class="sLogo">ZEITWÄCHTER</h1><div class="sTag">100 Kapitel · 1000 Level</div></div>
-  <div class="sBottom"><div class="sCrew" id="sCrew"></div><button class="sStart" id="sStart">START</button><div class="sHint" id="sHint">♪ Antippen für Musik</div></div>
+  <div class="sBottom"><div class="sCrew" id="sCrew"></div><button class="sStart" id="sStart">START</button><div class="sHint" id="sHint">♪ Musik startet bei der ersten Berührung</div></div>
 </div>
 <div id="overlay" hidden></div>
 <div id="toast" hidden></div>
@@ -1097,14 +1097,64 @@ const MUS = (() => {
     const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); s.buffer = b; f.type = 'highpass'; f.frequency.value = 7000; g.gain.value = .08;
     s.connect(f); f.connect(g); g.connect(AUD.music); s.start(t);
   }
+  /* Orchester-Instrumente */
+  let REV = null;
+  function reverb() {
+    if (REV) return REV;
+    const a = AUD.ac, len = Math.floor(a.sampleRate * 2.4), ir = a.createBuffer(2, len, a.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    const cv = a.createConvolver(); cv.buffer = ir; const g = a.createGain(); g.gain.value = .38; cv.connect(g); g.connect(AUD.music);
+    return REV = cv;
+  }
+  function voice(m, t, d, v, o) {
+    const a = AUD.ac, f = hz(m), g = a.createGain(), end = t + d + o.rel;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + o.att);
+    g.gain.setValueAtTime(v, t + Math.max(o.att + .01, d)); g.gain.linearRampToValueAtTime(.0001, end);
+    let entry = g;
+    if (o.peak) { const pk = a.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = o.peak; pk.gain.value = 5; pk.Q.value = 1; pk.connect(entry); entry = pk; }
+    if (o.cut) { const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = o.cut; lp.connect(entry); entry = lp; }
+    let lg = null;
+    if (o.vib) { const lfo = a.createOscillator(); lfo.frequency.value = o.rate; lg = a.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * o.vib, t + (o.vd || .2)); lfo.connect(lg); lfo.start(t); lfo.stop(end + .05); }
+    o.det.forEach(dt => { const os = a.createOscillator(); os.type = o.type; os.frequency.setValueAtTime(f, t); os.detune.value = dt; if (lg) lg.connect(os.frequency); os.connect(entry); os.start(t); os.stop(end + .05); });
+    if (o.breath) {
+      const b = a.createBuffer(1, Math.floor(a.sampleRate * (d + o.rel)), a.sampleRate), ch = b.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+      const s = a.createBufferSource(), bp = a.createBiquadFilter(), bg = a.createGain(); s.buffer = b; bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 3; bg.gain.value = .12;
+      s.connect(bp); bp.connect(bg); bg.connect(entry); s.start(t);
+    }
+    g.connect(AUD.music); g.connect(reverb());
+  }
+  const violin = (m, t, d, v) => voice(m, t, d, v, {type:'sawtooth', det:[-5, 4], cut:3600, peak:1250, att:.13, rel:.35, vib:.007, rate:5.8, vd:.35});
+  const strings = (m, t, d, v) => voice(m, t, d, v, {type:'sawtooth', det:[-9, 0, 8], cut:2000, peak:850, att:.35, rel:.6, vib:.004, rate:5.1});
+  const horn = (m, t, d, v) => voice(m, t, d, v, {type:'sawtooth', det:[0, 4], cut:850, peak:480, att:.09, rel:.3, vib:.002, rate:4.6});
+  const flute = (m, t, d, v) => voice(m, t, d, v, {type:'sine', det:[0], att:.07, rel:.22, vib:.006, rate:5.2, vd:.25, breath:true});
+  const stacc = (m, t, v) => voice(m, t, .1, v, {type:'sawtooth', det:[-6, 6], cut:2600, peak:1000, att:.012, rel:.07});
+  const MEL = [
+    [[0,74,6],[6,72,2],[8,69,8]], [[0,70,4],[4,72,4],[8,74,8]], [[0,72,6],[6,74,2],[8,76,6],[14,74,2]], [[0,73,8],[8,69,8]],
+    [[0,77,8],[8,76,4],[12,74,4]], [[0,74,6],[6,72,2],[8,70,8]], [[0,72,4],[4,76,4],[8,79,8]], [[0,76,8],[8,73,4],[12,69,4]]];
+  const FLU = [[[4,69,2],[6,72,2],[12,74,4]], [[4,65,2],[6,67,2],[12,70,4]], [[2,67,2],[6,72,2],[12,76,4]], [[4,69,4],[10,64,2],[12,61,4]]];
   function play(s, t) {
-    const sp = 60 / BPM[mode] / 4, bar = Math.floor(s / 16) % 4, pos = s % 16, ch = PROG[mode][bar], calm = mode === 'map';
-    if (pos === 0) ch.forEach(m => note(m, t, sp * 16, 'sine', calm ? .035 : .025, 0));
-    if (pos % 8 === 0) note(ch[0] - 24, t, sp * (calm ? 7 : 3.5), 'triangle', .2, 0);
-    if (!calm && pos % 4 === 2) note(ch[0] - 12, t, sp * 1.5, 'triangle', .12, 0);
-    if (calm ? pos % 2 === 0 : true) note(ch[(pos >> (calm ? 1 : 0)) % 3] + (pos >= 8 ? 24 : 12), t, sp * (calm ? 1.8 : .9), 'square', calm ? .02 : .022, calm ? 1400 : 2200);
-    if (mode === 'title') { if (pos % 8 === 0) drum(t, true); if (pos === 12) drum(t, false); if (pos % 4 === 0) note(ch[2] + 24, t, sp * 3, 'sine', .03, 0); }
-    else if (!calm) { if (pos % 4 === 0) drum(t, true); if (pos % 2 === 1) drum(t, false); if (mode === 'boss' && pos === 14) drum(t, true); }
+    const sp = 60 / BPM[mode] / 4, bar = Math.floor(s / 16) % 4, pos = s % 16, ch = PROG[mode][bar];
+    if (mode === 'title') {
+      const b8 = Math.floor(s / 16) % 8;
+      if (pos === 0) { ch.forEach(m => strings(m - 12, t, sp * 16, .016)); strings(ch[0] - 24, t, sp * 16, .022); horn(ch[0] - 12, t, sp * 6, .03); horn(ch[2] - 12, t, sp * 6, .022); }
+      MEL[b8].forEach(([p, m, l]) => { if (p === pos) violin(m, t, sp * l, .045); });
+      if (b8 >= 4) FLU[b8 - 4].forEach(([p, m, l]) => { if (p === pos) flute(m + 12, t, sp * l, .035); });
+      if (pos === 0 || (bar === 3 && pos === 8)) drum(t, true);
+      return;
+    }
+    if (mode === 'map') {
+      if (pos === 0) ch.forEach(m => strings(m - 12, t, sp * 16, .014));
+      if (pos % 8 === 0) note(ch[0] - 24, t, sp * 7, 'triangle', .18, 0);
+      if (pos % 2 === 0) note(ch[(pos >> 1) % 3] + 12 + (pos >= 8 ? 12 : 0), t, sp * 1.6, 'triangle', .022, 1600);
+      if (bar % 2 === 1) [[0, 2, 6], [6, 1, 2], [8, 0, 8]].forEach(([p, i, l]) => { if (p === pos) flute(ch[i] + 24, t, sp * l, .026); });
+      return;
+    }
+    if (pos === 0) { ch.forEach(m => strings(m - 12, t, sp * 16, .012)); horn(ch[0] - 12, t, sp * 3, .03); horn(ch[2] - 12, t, sp * 3, .022); }
+    if (pos % 8 === 0) note(ch[0] - 24, t, sp * 3.5, 'triangle', .2, 0);
+    if (pos % 4 === 2) note(ch[0] - 12, t, sp * 1.5, 'triangle', .12, 0);
+    stacc(ch[pos % 3] + 12 + (pos >= 8 ? 12 : 0), t, .02);
+    if (pos % 4 === 0) drum(t, true); if (pos % 2 === 1) drum(t, false); if (mode === 'boss' && pos === 14) drum(t, true);
   }
   function tick() {
     const a = AUD.ac; if (!a || a.state !== 'running') return;
@@ -1118,7 +1168,7 @@ const MUS = (() => {
 })();
 
 const HAP = {buzz() {}};
-document.addEventListener('pointerdown', () => SND.unlock(), {passive:true});
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, () => SND.unlock(), {passive:true}));
 
 function settingsSheet() {
   const ov = $('#overlay'); ov.className = 'center'; ov.hidden = false;
@@ -2141,6 +2191,7 @@ function startScreen() {
   $('#sBoss').innerHTML = enemySvg('boss', 'k');
   $('#sCrew').innerHTML = ['rook', 'mila', 'ilka', 'bolt', 'nox'].map(id => `<div>${portrait(CHARS[id])}</div>`).join('');
   MUS.setMode('title');
+  try { AUD.ctx(); MUS.ensure(); } catch (e) {}
   const cv = $('#startCv'), x = cv.getContext('2d'), gimg = {};
   C5.concat('p').forEach(c => gimg[c] = makeGem(c, 96));
   let W = 0, H = 0, dp = 1;
@@ -2194,7 +2245,7 @@ function startScreen() {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  el.addEventListener('pointerdown', () => { $('#sHint').textContent = ''; }, {once:true});
+  const hideHint = () => { if (AUD.ac && AUD.ac.state === 'running') $('#sHint').textContent = ''; else setTimeout(hideHint, 400); }; hideHint();
   $('#sStart').onclick = () => {
     SND.unlock(); SND.pick();
     el.style.transition = 'opacity .45s'; el.style.opacity = '0';
