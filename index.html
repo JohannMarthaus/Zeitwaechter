@@ -386,6 +386,27 @@ table.st td.up{color:var(--good)}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .seg button{border:2.5px solid var(--ink);border-radius:10px;background:var(--panel-2);padding:7px 0;font-size:14px}
 .seg button.on{background:var(--accent);color:var(--ink)}
+
+/* Startbildschirm */
+#start{position:fixed;inset:0;z-index:45;background:#07051a;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top,0px) + 36px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 30px) max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}
+#startCv{position:absolute;inset:0;width:100%;height:100%}
+.sTop,.sBottom{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
+.sBoss{position:absolute;left:50%;top:-10px;width:min(78vw,380px);transform:translateX(-50%);opacity:.32;filter:drop-shadow(0 0 30px #b04aff);animation:sFloat 6s ease-in-out infinite;pointer-events:none}
+@keyframes sFloat{50%{transform:translateX(-50%) translateY(10px) scale(1.03)}}
+.sLogo{position:relative;margin:min(28vw,150px) 0 0;font-family:var(--display);font-weight:400;font-size:clamp(40px,12vw,80px);line-height:.9;letter-spacing:.03em;color:var(--accent);
+  -webkit-text-stroke:2.5px var(--ink);text-shadow:5px 5px 0 var(--ink),0 0 34px rgba(255,160,40,.55);transform:rotate(-4deg);animation:sGlow 3s ease-in-out infinite}
+@keyframes sGlow{50%{text-shadow:5px 5px 0 var(--ink),0 0 52px rgba(255,190,60,.9)}}
+.sTag{margin-top:14px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:4px 12px;font-size:15px;transform:rotate(2deg);box-shadow:3px 3px 0 var(--ink)}
+.sCrew{display:flex;justify-content:center;margin-bottom:26px}
+.sCrew div{width:clamp(54px,17vw,78px);aspect-ratio:1;border-radius:50%;overflow:hidden;border:3px solid var(--ink);margin:0 -5px;box-shadow:0 0 0 3px rgba(255,255,255,.18),0 6px 0 var(--ink);animation:sBob 2.4s ease-in-out infinite}
+.sCrew div:nth-child(2){animation-delay:-.5s}.sCrew div:nth-child(3){animation-delay:-1s}.sCrew div:nth-child(4){animation-delay:-1.5s}.sCrew div:nth-child(5){animation-delay:-2s}
+@keyframes sBob{50%{transform:translateY(-8px)}}
+.sStart{font-family:var(--display);font-size:40px;letter-spacing:.12em;padding:12px 44px 8px;color:var(--ink);background:var(--accent);background-image:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,0) 55%);
+  border:4px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink),0 0 30px rgba(255,207,58,.6);animation:sPulse 1.4s ease-in-out infinite}
+.sStart:active{transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
+@keyframes sPulse{50%{box-shadow:0 6px 0 var(--ink),0 0 50px rgba(255,207,58,1)}}
+.sHint{margin-top:16px;color:var(--muted);font-size:13px;min-height:16px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 </style>
 
@@ -436,6 +457,11 @@ table.st td.up{color:var(--good)}
     <div id="coach" hidden></div><div id="flash"></div><canvas id="fx"></canvas>
     <div id="boardWrap"><canvas id="board" aria-label="Kugelfeld"></canvas><div id="combo"></div><div id="chip" hidden></div></div>
   </section>
+</div>
+<div id="start" hidden>
+  <canvas id="startCv" aria-hidden="true"></canvas>
+  <div class="sTop"><div class="sBoss" id="sBoss"></div><h1 class="sLogo">ZEITWÄCHTER</h1><div class="sTag">100 Kapitel · 1000 Level</div></div>
+  <div class="sBottom"><div class="sCrew" id="sCrew"></div><button class="sStart" id="sStart">START</button><div class="sHint" id="sHint">♪ Antippen für Musik</div></div>
 </div>
 <div id="overlay" hidden></div>
 <div id="toast" hidden></div>
@@ -1052,8 +1078,8 @@ const SND = (() => {
 /* Hintergrundmusik: live erzeugt, drei Stimmungen */
 const MUS = (() => {
   let timer = null, next = 0, step = 0, mode = 'map';
-  const PROG = {map:[[57,60,64],[53,57,60],[48,52,55],[55,59,62]], battle:[[57,60,64],[53,57,60],[55,59,62],[52,56,59]], boss:[[50,53,57],[46,50,53],[48,52,55],[45,49,52]]};
-  const BPM = {map:84, battle:112, boss:126};
+  const PROG = {map:[[57,60,64],[53,57,60],[48,52,55],[55,59,62]], battle:[[57,60,64],[53,57,60],[55,59,62],[52,56,59]], boss:[[50,53,57],[46,50,53],[48,52,55],[45,49,52]], title:[[50,57,62],[46,53,58],[48,55,60],[45,52,57]]};
+  const BPM = {map:84, battle:112, boss:126, title:96};
   const hz = m => 440 * Math.pow(2, (m - 69) / 12);
   function note(m, t, d, type, v, cut) {
     const a = AUD.ac, o = a.createOscillator(), g = a.createGain();
@@ -1077,7 +1103,8 @@ const MUS = (() => {
     if (pos % 8 === 0) note(ch[0] - 24, t, sp * (calm ? 7 : 3.5), 'triangle', .2, 0);
     if (!calm && pos % 4 === 2) note(ch[0] - 12, t, sp * 1.5, 'triangle', .12, 0);
     if (calm ? pos % 2 === 0 : true) note(ch[(pos >> (calm ? 1 : 0)) % 3] + (pos >= 8 ? 24 : 12), t, sp * (calm ? 1.8 : .9), 'square', calm ? .02 : .022, calm ? 1400 : 2200);
-    if (!calm) { if (pos % 4 === 0) drum(t, true); if (pos % 2 === 1) drum(t, false); if (mode === 'boss' && pos === 14) drum(t, true); }
+    if (mode === 'title') { if (pos % 8 === 0) drum(t, true); if (pos === 12) drum(t, false); if (pos % 4 === 0) note(ch[2] + 24, t, sp * 3, 'sine', .03, 0); }
+    else if (!calm) { if (pos % 4 === 0) drum(t, true); if (pos % 2 === 1) drum(t, false); if (mode === 'boss' && pos === 14) drum(t, true); }
   }
   function tick() {
     const a = AUD.ac; if (!a || a.state !== 'running') return;
@@ -1090,24 +1117,7 @@ const MUS = (() => {
   };
 })();
 
-/* Vibration: Android über navigator.vibrate, iPhone (ab iOS 18) über ein unsichtbares Schalter-Element */
-const HAP = (() => {
-  let lab = null;
-  function ios() {
-    const l = document.createElement('label'); l.setAttribute('aria-hidden', 'true'); l.style.display = 'none';
-    const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
-    document.head.appendChild(l); l.click(); document.head.removeChild(l);
-  }
-  return {
-    buzz(level) {
-      if (!SET.get('vib')) return;
-      const st = SET.get('vibStr');
-      if (navigator.vibrate) { try { navigator.vibrate(Math.round([8, 18, 35][st - 1] * level)); } catch (e) {} return; }
-      const n = Math.max(1, Math.min(4, Math.round((st + level - 1) / 2)));
-      for (let i = 0; i < n; i++) setTimeout(() => { try { ios(); } catch (e) {} }, i * 60);
-    }
-  };
-})();
+const HAP = {buzz() {}};
 document.addEventListener('pointerdown', () => SND.unlock(), {passive:true});
 
 function settingsSheet() {
@@ -1121,9 +1131,7 @@ function settingsSheet() {
     <input type="range" id="rSfx" min="0" max="100" value="${pct('sfx')}" aria-label="Lautstärke Effekte">
     <div class="srow"><div><b>Musik</b><small id="lMusic">${SET.get('musicOn') ? pct('music') + ' %' : 'aus'}</small></div>${tog('tMusic', 'musicOn', 'Musik an oder aus')}</div>
     <input type="range" id="rMusic" min="0" max="100" value="${pct('music')}" aria-label="Lautstärke Musik">
-    <div class="srow"><div><b>Vibration</b><small>${navigator.vibrate ? 'bei Zügen, Treffern und Fähigkeiten' : 'iPhone (ab iOS 18): spürbar beim Loslassen einer Kugel und bei Knöpfen. Während des Ziehens erlaubt iOS keine Vibration.'}</small></div>${tog('tVib', 'vib', 'Vibration an oder aus')}</div>
-    <div class="seg" id="vStr">${['Leicht', 'Mittel', 'Stark'].map((t, i) => `<button data-v="${i + 1}" class="${SET.get('vibStr') === i + 1 ? 'on' : ''}">${t}</button>`).join('')}</div>
-    <div class="btns"><button class="btn sm ghost" id="vTest">Vibration testen</button><button class="btn sm" id="sClose">Fertig</button></div></div>`;
+    <div class="btns"><button class="btn sm" id="sClose">Fertig</button></div></div>`;
   const bind = (r, k, l, onK, offTxt) => $(r).oninput = e => { SET.set(k, e.target.value / 100); $(l).textContent = (onK && !SET.get(onK)) ? offTxt : e.target.value + ' %'; };
   bind('#rMaster', 'master', '#lMaster', 'masterOn', 'stumm');
   bind('#rSfx', 'sfx', '#lSfx');
@@ -1132,9 +1140,6 @@ function settingsSheet() {
   const flip = (id, k, after) => $(id).onclick = () => { SET.set(k, !SET.get(k)); $(id).classList.toggle('on', SET.get(k)); $(id).setAttribute('aria-pressed', SET.get(k)); after && after(); };
   flip('#tMaster', 'masterOn', () => { $('#lMaster').textContent = SET.get('masterOn') ? pct('master') + ' %' : 'stumm'; });
   flip('#tMusic', 'musicOn', () => { $('#lMusic').textContent = SET.get('musicOn') ? pct('music') + ' %' : 'aus'; });
-  flip('#tVib', 'vib');
-  $('#vStr').querySelectorAll('button').forEach(b => b.onclick = () => { SET.set('vibStr', +b.dataset.v); $('#vStr').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); HAP.buzz(2); });
-  $('#vTest').onclick = () => HAP.buzz(3);
   $('#sClose').onclick = closeOv; ov.onclick = ev => { if (ev.target === ov) closeOv(); };
 }
 
@@ -1684,7 +1689,7 @@ canvas.addEventListener('pointermove', e => {
     if (!drag.started) { drag.started = true; drag.t0 = performance.now(); }
   }
 });
-canvas.addEventListener('pointerup', () => { if (drag && drag.started) HAP.buzz(2); endDrag(); });
+canvas.addEventListener('pointerup', () => endDrag());
 canvas.addEventListener('pointercancel', () => endDrag());
 function endDrag() {
   if (!drag) return;
@@ -2130,7 +2135,74 @@ $('#resetBtn').onclick = () => {
 
 renderMap();
 requestAnimationFrame(frame);
-if (!save.tutDone && !save.cleared[0]) setTimeout(() => startLevel(0), 300);
+/* ---------- Startbildschirm ---------- */
+function startScreen() {
+  const el = $('#start'); el.hidden = false;
+  $('#sBoss').innerHTML = enemySvg('boss', 'k');
+  $('#sCrew').innerHTML = ['rook', 'mila', 'ilka', 'bolt', 'nox'].map(id => `<div>${portrait(CHARS[id])}</div>`).join('');
+  MUS.setMode('title');
+  const cv = $('#startCv'), x = cv.getContext('2d'), gimg = {};
+  C5.concat('p').forEach(c => gimg[c] = makeGem(c, 96));
+  let W = 0, H = 0, dp = 1;
+  const size = () => { dp = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dp; cv.height = H * dp; };
+  size(); window.addEventListener('resize', size);
+  const stars = Array.from({length:140}, () => ({a:Math.random() * 6.283, d:Math.random() * 600, s:.3 + Math.random() * 1.4}));
+  const gems = Array.from({length:12}, (_, i) => ({c:C5.concat('p')[i % 6], x:Math.random(), y:Math.random(), v:.0006 + Math.random() * .0012, r:Math.random() * 6.283, vr:(Math.random() - .5) * .02, z:26 + Math.random() * 34}));
+  function frame(t) {
+    if (el.hidden) { window.removeEventListener('resize', size); return; }
+    x.setTransform(dp, 0, 0, dp, 0, 0);
+    const cx = W / 2, cy = H * .36, R = Math.min(W, H) * .42;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * .8);
+    g.addColorStop(0, '#4a2286'); g.addColorStop(.35, '#1e1048'); g.addColorStop(1, '#05030f');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    // Zeitstrudel
+    x.save(); x.translate(cx, cy);
+    for (let i = 0; i < 16; i++) {
+      const rr = ((i * 42 + t * .035) % 672); const al = Math.max(0, .5 - rr / 1300);
+      x.strokeStyle = `hsla(${(280 + rr * .15) % 360},90%,65%,${al})`; x.lineWidth = 2 + rr / 120;
+      x.beginPath(); x.ellipse(0, 0, rr, rr * .92, t * .0002 + i, 0, 6.283); x.stroke();
+    }
+    for (let k = 0; k < 6; k++) {
+      x.strokeStyle = 'rgba(255,190,90,.08)'; x.lineWidth = 18; x.beginPath();
+      for (let s = 0; s < 1; s += .02) { const a = k * 1.047 + t * .00035 + s * 4, r = s * R * 1.6; s ? x.lineTo(Math.cos(a) * r, Math.sin(a) * r) : x.moveTo(0, 0); }
+      x.stroke();
+    }
+    // Riesige Uhr
+    x.strokeStyle = 'rgba(255,207,58,.35)'; x.lineWidth = 4; x.beginPath(); x.arc(0, 0, R, 0, 6.283); x.stroke();
+    x.lineWidth = 2; x.beginPath(); x.arc(0, 0, R * .9, 0, 6.283); x.stroke();
+    for (let i = 0; i < 60; i++) { const a = i * Math.PI / 30, l = i % 5 ? R * .04 : R * .09; x.lineWidth = i % 5 ? 1.5 : 4;
+      x.beginPath(); x.moveTo(Math.cos(a) * (R * .9 - l), Math.sin(a) * (R * .9 - l)); x.lineTo(Math.cos(a) * R * .9, Math.sin(a) * R * .9); x.stroke(); }
+    x.strokeStyle = 'rgba(255,207,58,.5)'; x.lineCap = 'round';
+    const hA = t * .00008 - 1.57, mA = t * .0012 - 1.57;
+    x.lineWidth = 9; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(hA) * R * .45, Math.sin(hA) * R * .45); x.stroke();
+    x.lineWidth = 5; x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(mA) * R * .78, Math.sin(mA) * R * .78); x.stroke();
+    x.restore();
+    // Sterne (Warp)
+    stars.forEach(st => {
+      st.d += st.s * (1 + st.d / 140); if (st.d > Math.max(W, H)) { st.d = Math.random() * 40; st.a = Math.random() * 6.283; }
+      const px = cx + Math.cos(st.a) * st.d, py = cy + Math.sin(st.a) * st.d, len = 2 + st.d / 40;
+      x.strokeStyle = `rgba(255,255,255,${Math.min(.9, st.d / 300)})`; x.lineWidth = 1 + st.d / 500;
+      x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(st.a) * len, py + Math.sin(st.a) * len); x.stroke();
+    });
+    // Schwebende Kugeln
+    gems.forEach(gm => {
+      gm.y -= gm.v; gm.r += gm.vr; if (gm.y < -.1) { gm.y = 1.1; gm.x = Math.random(); }
+      const px = gm.x * W + Math.sin(t * .001 + gm.z) * 14, py = gm.y * H;
+      x.save(); x.translate(px, py); x.rotate(gm.r); x.globalAlpha = .85; x.drawImage(gimg[gm.c], -gm.z / 2, -gm.z / 2, gm.z, gm.z); x.restore();
+    });
+    x.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  el.addEventListener('pointerdown', () => { $('#sHint').textContent = ''; }, {once:true});
+  $('#sStart').onclick = () => {
+    SND.unlock(); SND.pick();
+    el.style.transition = 'opacity .45s'; el.style.opacity = '0';
+    show('scrMap'); renderMap();
+    setTimeout(() => { el.hidden = true; el.style.opacity = ''; if (!save.tutDone && !save.cleared[0]) startLevel(0); }, 450);
+  };
+}
+startScreen();
 })();
 </script>
 
