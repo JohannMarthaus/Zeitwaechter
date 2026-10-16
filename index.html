@@ -1163,7 +1163,7 @@ const stat = (id, k) => statAt(id, k, lvOf(id));
 const xpNeed = l => 120 + 55 * l + 2 * l * l;
 function msText(m, id) {
   const lead = id === 'ilka', out = [], pc = x => Math.round(x * 100) + ' %';
-  if (m.sec) out.push(`Zweitfarbe ${GEMC[CHARS[id].sec].name} aktiv (50 % ATK)`);
+  if (m.sec) out.push(secOn(id) ? `Zweitfarbe ${GEMC[CHARS[id].sec].name} aktiv (50 % ATK)` : 'Zweitfarbe wird freigeschaltet (50 % ATK)');
   if (m.secp) out.push('Zweitfarbe greift mit 75 % ATK an');
   if (m.pw) out.push(`Fähigkeit +${pc(m.pw)} stärker`);
   if (m.hp) out.push(`+${pc(m.hp)} HP`);
@@ -1182,7 +1182,7 @@ const recLevel = n => Math.min(LVCAP, Math.max(1, Math.round(n <= 100 ? 2 + n * 
 const secOn = id => !!CHARS[id].sec && save.roster[id] && save.roster[id].lvl >= SEC_LV;
 function duo(id, extra) {
   const ch = CHARS[id], c2 = secOn(id) ? PBG[ch.sec] : '#4a4560';
-  return `<div class="duo ${extra || ''}" style="--c1:${PBG[ch.color]}"><div class="in">${portrait(ch)}</div><img class="mainb" src="${gemUrl(ch.color)}" alt="Hauptfarbe ${GEMC[ch.color].name}"><span class="secb ${secOn(id) ? '' : 'lk'}" title="Zweitfarbe ${GEMC[ch.sec].name}"><img src="${gemUrl(ch.sec)}" alt="Zweitfarbe ${GEMC[ch.sec].name}"></span></div>`;
+  return `<div class="duo ${extra || ''}" style="--c1:${PBG[ch.color]}"><div class="in">${portrait(ch)}</div><img class="mainb" src="${gemUrl(ch.color)}" alt="Hauptfarbe ${GEMC[ch.color].name}">${secOn(id) ? `<span class="secb" title="Zweitfarbe ${GEMC[ch.sec].name}"><img src="${gemUrl(ch.sec)}" alt="Zweitfarbe ${GEMC[ch.sec].name}"></span>` : ''}</div>`;
 }
 const unlocked = n => n === 0 || (n === 1 ? !!save.tutDone : save.cleared[n - 2]);
 const firstOpen = () => { for (let n = 1; n <= MAXN; n++) if (!save.cleared[n - 1]) return n; return MAXN; };
@@ -1296,7 +1296,7 @@ function renderTeamScreen() {
   $('#detail').innerHTML = `${duo(id)}<div class="meta">
     <div class="nm"><b style="font-family:var(--display);font-size:21px;font-weight:400;letter-spacing:.04em">${ch.name}</b> <span class="chip">Lv ${R.lvl}</span> <span class="chip">${ch.role}</span></div>
     <div class="colors"><span><img src="${gemUrl(ch.color)}" alt="">Hauptfarbe ${GEMC[ch.color].name}</span>
-      <span class="${secOn(id) ? '' : 'lock'}"><img src="${gemUrl(ch.sec)}" alt="">Zweitfarbe ${GEMC[ch.sec].name}${secOn(id) ? ' (50 % ATK)' : ` · ab Lv ${SEC_LV}`}</span></div>
+      <span>${secOn(id) ? `<img src="${gemUrl(ch.sec)}" alt="">Zweitfarbe ${GEMC[ch.sec].name} (${Math.round(secPart(id) * 100)} % ATK)` : `Zweitfarbe: wird ab Lv ${SEC_LV} freigeschaltet`}</span></div>
     <table class="st"><tr><th></th><th>Basis</th><th>Jetzt</th><th>Lv ${R.lvl + 1}</th></tr>
       ${['hp','atk','heal'].map(k => `<tr><td>${{hp:'HP', atk:'ATK', heal:'Heil'}[k]}</td><td>${CHARS[id][k]}</td><td><b>${stat(id, k)}</b></td><td class="up">+${statAt(id, k, R.lvl + 1) - stat(id, k)}</td></tr>`).join('')}</table>
     <div class="xpb"><i style="width:${Math.min(100, R.xp / xpNeed(R.lvl) * 100)}%"></i><span>XP ${R.xp} / ${xpNeed(R.lvl)}</span></div>
@@ -1442,7 +1442,7 @@ function renderTeam() {
     const d = document.createElement('button');
     d.className = 'ally duo' + (a.leader ? ' lead' : ''); d.setAttribute('aria-label', a.ch.name);
     d.style.setProperty('--c1', PBG[a.color]);
-    d.innerHTML = `<div class="in">${portrait(a.ch)}</div><img class="mainb" src="${gemUrl(a.color)}" alt=""><span class="secb ${a.sec ? '' : 'lk'}"><img src="${gemUrl(a.ch.sec)}" alt=""></span><span class="aff"></span><div class="bar"><i></i>${a.leader ? `<b style="left:${B.t1 / B.t2 * 100}%"></b>` : ''}</div>`;
+    d.innerHTML = `<div class="in">${portrait(a.ch)}</div><img class="mainb" src="${gemUrl(a.color)}" alt="">${a.sec ? `<span class="secb"><img src="${gemUrl(a.sec)}" alt=""></span>` : ''}<span class="aff"></span><div class="bar"><i></i>${a.leader ? `<b style="left:${B.t1 / B.t2 * 100}%"></b>` : ''}</div>`;
     d.onclick = () => openAlly(a);
     a.el = d; t.appendChild(d);
   });
@@ -1496,7 +1496,7 @@ function helpSheet() {
       <span>${im('p')}</span><span>Heilt das Team (Heilwert aller Begleiter).</span><span>${im('s')}</span><span>Zählt als Combo, sonst keine Wirkung.</span></div>
     <p class="pw"><em>Kette:</em> 3 Kugeln = 100 % ATK, jede weitere +25 %. Ab 5 Kugeln trifft der Angriff alle Gegner.</p>
     <p class="pw"><em>Combos:</em> Jede weitere Combo im selben Zug gibt allen Angriffen und der Heilung +25 %. Zwei Dreierketten sind stärker als eine Sechserkette.</p>
-    <p class="pw"><em>Haupt- und Zweitfarbe:</em> Die Rahmenfarbe eines Porträts ist die Hauptfarbe, der kleine runde Stein unten rechts die Zweitfarbe. Ab Lv 10 greift die Figur auch bei ihrer Zweitfarbe an (50 %, ab Lv 25 75 %). Grau heißt: noch gesperrt. Der Pfeil am Porträt zeigt, ob die Hauptfarbe gegen das Ziel stark ▲ oder schwach ▼ ist.</p>
+    <p class="pw"><em>Haupt- und Zweitfarbe:</em> Die Rahmenfarbe eines Porträts ist die Hauptfarbe, der kleine runde Stein unten rechts die Zweitfarbe. Die Zweitfarbe erscheint erst ab Lv 10. Dann greift die Figur auch bei dieser Farbe an (50 %, ab Lv 25 75 %). Der Pfeil am Porträt zeigt, ob die Hauptfarbe gegen das Ziel stark ▲ oder schwach ▼ ist.</p>
     <p class="pw"><em>Gegner:</em> Die Zahl links oben zeigt, in wie vielen Zügen er handelt. Das Schild rechts oben zeigt seine nächste Aktion. Tippe einen Gegner zum Zielen an und noch einmal für alle Details.</p>
     <p class="pw"><em>Fähigkeiten:</em> Tippe ein Porträt an. Ein leuchtender Rahmen heißt: bereit.</p>
     <div class="btns"><button class="btn sm" id="hClose">Verstanden</button></div></div>`;
@@ -1931,7 +1931,7 @@ const TUT = (() => {
   const allyEl = id => { const a = B.allies.find(x => x.id === id); return a && a.el; };
   const S = [
     {w:'ilka', t:'Willkommen bei der Zeitwacht! In ein paar kurzen Schritten zeige ich dir, wie ein Kampf funktioniert.'},
-    {w:'ilka', t:'Oben stehen die Gegner, in der Mitte dein Team, unten das Kugelfeld. Jede Figur greift mit ihrer Farbe an: Die Rahmenfarbe ist die Hauptfarbe. Der kleine runde Stein unten rechts ist die Zweitfarbe, grau heißt noch gesperrt (frei ab Level 10).', hl:() => $('#team')},
+    {w:'ilka', t:'Oben stehen die Gegner, in der Mitte dein Team, unten das Kugelfeld. Jede Figur greift mit ihrer Farbe an: Die Rahmenfarbe ist die Hauptfarbe. Ab Level 10 bekommt jede Figur eine Zweitfarbe, dann erscheint unten rechts ein kleiner runder Stein.', hl:() => $('#team')},
     {w:'rook', t:'Halte die blinkende rote Kugel gedrückt und zieh sie ein Feld nach links. Dann liegen drei Rote in einer Reihe, und ich greife an!', board:'A', hint:[[4,3],[4,2]], wait:'turn', need:1, col:'r'},
     {w:'rook', t:'Treffer! Jede rote Kette löst den Angriff aller roten Figuren aus. Die große Zahl ist der Schaden. Sobald du eine Kugel bewegst, hast du 5 Sekunden Zeit, siehe Balken über dem Feld.'},
     {w:'mila', t:'Autsch, die Drohne hat uns erwischt! Pinke Kugeln heilen das ganze Team. Zieh die blinkende pinke Kugel nach links.', board:'B', hint:[[4,3],[4,2]], wait:'turn', need:1, col:'p',
